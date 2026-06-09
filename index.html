@@ -564,12 +564,7 @@ renderCxc();
       <div class="mes-dropdown" id="pyg_mesDrop">
         <button class="mes-dropdown-btn" id="pyg_mesBtn" onclick="toggleMesDrop('pyg')">Acumulado</button>
         <div class="mes-dropdown-panel" id="pyg_mesPanel">
-          <label><input type="checkbox" id="pyg_ck0" value="0" checked onchange="PYG_handleMesCk(this)"> Acumulado</label>
-          <div class="mes-dropdown-sep"></div>
-          <label><input type="checkbox" id="pyg_ck1" value="1" onchange="PYG_handleMesCk(this)"> Enero</label>
-          <label><input type="checkbox" id="pyg_ck2" value="2" onchange="PYG_handleMesCk(this)"> Febrero</label>
-          <label><input type="checkbox" id="pyg_ck3" value="3" onchange="PYG_handleMesCk(this)"> Marzo</label>
-          <label><input type="checkbox" id="pyg_ck4" value="4" onchange="PYG_handleMesCk(this)"> Abril</label>
+          <!-- populated dynamically by PYG_initCharts() based on PYG_MONTHS -->
         </div>
       </div>
     </div>
@@ -761,6 +756,20 @@ let PYG_curMes=[0], PYG_curCC='TOTAL', PYG_curTipo='todo', PYG_curDet='todos', P
 let PYG_evCh, PYG_margCh;
 
 function PYG_initCharts() {
+  // Rebuild month checkbox panel dynamically from PYG_MONTHS
+  // This ensures new months appear automatically when data is updated
+  const pygPanel = document.getElementById('pyg_mesPanel');
+  if (pygPanel) {
+    const MN_FULL = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',
+                     7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'};
+    let inner = `<label><input type="checkbox" id="pyg_ck0" value="0" checked onchange="PYG_handleMesCk(this)"> Acumulado</label>
+      <div class="mes-dropdown-sep"></div>`;
+    PYG_MONTHS.forEach(m => {
+      inner += `<label><input type="checkbox" id="pyg_ck${m}" value="${m}" onchange="PYG_handleMesCk(this)"> ${MN_FULL[m]}</label>`;
+    });
+    pygPanel.innerHTML = inner;
+  }
+
   const ml = PYG_MONTHS.map(m => PYG_aggregate(PYG_getRows(m,'TOTAL')));
   const labels = PYG_MONTHS.map(m => PYG_MNS[m]);
 
