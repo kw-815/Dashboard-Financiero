@@ -1868,15 +1868,12 @@ function FAC_renderKPIs() {
   const total = d.reduce((a,r)=>a+r.valor,0);
   const com   = d.filter(r=>r.grupo==='COMUNICACION').reduce((a,r)=>a+r.valor,0);
   const aapp  = d.filter(r=>r.grupo==='ASUNTOS PUBLICOS').reduce((a,r)=>a+r.valor,0);
-  const clientes = new Set(d.map(r=>r.cliente)).size;
-  const MNL = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril'};
   document.getElementById('fac_kTotal').textContent = FAC_fmtD(total);
   document.getElementById('fac_kTotalSub').textContent = FAC_mesLabel();
   document.getElementById('fac_kCom').textContent = FAC_fmtD(com);
   document.getElementById('fac_kComPct').textContent = total>0?(com/total*100).toFixed(1).replace('.',',')+'\u202f% del total':'A1 + A10';
   document.getElementById('fac_kAapp').textContent = FAC_fmtD(aapp);
   document.getElementById('fac_kAappPct').textContent = total>0?(aapp/total*100).toFixed(1).replace('.',',')+'\u202f% del total':'A2 + A11';
-  document.getElementById('fac_kClientes').textContent = clientes;
 }
 
 function FAC_renderMesChart() {
@@ -1900,61 +1897,7 @@ function FAC_renderMesChart() {
   });
 }
 
-function FAC_renderTopChart() {
-  const d = FAC_filtered();
-  const MNL = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril'};
-  const tots = {};
-  d.forEach(r => { tots[r.cliente]=(tots[r.cliente]||0)+r.valor; });
-  const sorted = Object.entries(tots).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const labels = sorted.map(([c])=>c.length>30?c.substring(0,28)+'…':c);
-  const vals = sorted.map(([,v])=>v);
-  const colors = sorted.map(([c])=>{
-    const r=d.find(x=>x.cliente===c);
-    return r&&r.grupo==='COMUNICACION'?'rgba(122,92,26,0.65)':'rgba(26,63,107,0.65)';
-  });
-  document.getElementById('fac_topLabel').textContent = FAC_mesLabel();
-  if(FAC_topCh) FAC_topCh.destroy();
-  FAC_topCh = new Chart(document.getElementById('fac_topChart'),{
-    type:'bar',
-    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:3,borderSkipped:false}]},
-    options:{
-      indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>FAC_fmtk(c.raw)}}},
-      scales:{
-        x:{ticks:{color:FAC_TC,font:{size:9,family:'DM Mono'},callback:FAC_fmtk},grid:{color:FAC_GC},border:{display:false}},
-        y:{ticks:{color:FAC_TC,font:{size:9,family:'DM Mono'}},grid:{display:false}}
-      }
-    }
-  });
-}
 
-function FAC_renderCCBars() {
-  const d = FAC_filtered();
-  const ccTots = {};
-  d.forEach(r=>{ ccTots[r.cc]=(ccTots[r.cc]||0)+r.valor; });
-  const total = Object.values(ccTots).reduce((a,v)=>a+v,0);
-  const ccLabels = {A1:'A1 · Com. Base',A2:'A2 · AAPP Base',A10:'A10 · Proy. Com.',A11:'A11 · Proy. AAPP',A13:'A13 · Enc. Fiduciario'};
-
-  function mkBars(ccs, elId, color) {
-    const el = document.getElementById(elId);
-    const subtotal = ccs.reduce((a,cc)=>a+(ccTots[cc]||0),0);
-    el.innerHTML = ccs.map(cc=>{
-      const v=ccTots[cc]||0;
-      const pct=subtotal>0?v/subtotal*100:0;
-      const pctTotal=total>0?v/total*100:0;
-      return '<div style="margin-bottom:12px">'+
-        '<div style="display:flex;justify-content:space-between;margin-bottom:4px">'+
-        '<span style="font-size:11px;color:var(--text-2)">'+(ccLabels[cc]||cc)+'</span>'+
-        '<span style="font-size:11px;font-family:\'DM Mono\',monospace">'+FAC_fmtD(v)+' <span style="color:var(--text-3)">('+pctTotal.toFixed(1)+'%)</span></span>'+
-        '</div>'+
-        '<div style="position:relative;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden">'+
-        '<div style="position:absolute;left:0;top:0;height:7px;width:'+pct+'%;background:'+color+';opacity:0.65;border-radius:4px"></div>'+
-        '</div></div>';
-    }).join('');
-  }
-  mkBars(['A1','A10'],'fac_barsCom','var(--gold)');
-  mkBars(['A2','A11','A13'],'fac_barsAapp','var(--blue)');
-}
 
 function FAC_renderTable() {
   const d = FAC_filtered();
