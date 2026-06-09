@@ -245,24 +245,7 @@ table.marg tr:last-child td{border-bottom:none;font-weight:600;color:var(--text)
     </div>
   </div>
 
-  <div class="card" style="margin-bottom:14px">
-    <div class="card-title">Posición bancaria — saldos al 31/05/2026</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
-      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px">
-        <div class="metric-label">Saldo inicial total</div>
-        <div class="metric-value" style="font-size:18px">$238,686</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px">
-        <div class="metric-label">Variación de saldos</div>
-        <div class="metric-value neg" style="font-size:18px">($70,970)</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px">
-        <div class="metric-label">Saldo final total</div>
-        <div class="metric-value" style="font-size:18px">167,716</div>
-      </div>
-    </div>
-    <div id="saldoBars"></div>
-  </div>
+
 
   <div class="card">
     <div class="card-title">Detalle movimientos por banco</div>
@@ -302,23 +285,13 @@ table.marg tr:last-child td{border-bottom:none;font-weight:600;color:var(--text)
       <div class="metric-sub" id="cxcCntFut">—</div>
     </div>
   </div>
-  <div class="grid2" style="margin-bottom:14px">
-    <div class="card">
-      <div class="card-title">CxC por mes de emisión</div>
-      <div class="legend">
-        <span><span class="legend-dot" style="background:var(--green)"></span>Futura</span>
-        <span><span class="legend-dot" style="background:var(--red)"></span>Vencida</span>
-      </div>
-      <div style="position:relative;height:200px"><canvas id="cxcMesChart"></canvas></div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">CxC por mes de emisión</div>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:var(--green)"></span>Futura</span>
+      <span><span class="legend-dot" style="background:var(--red)"></span>Vencida</span>
     </div>
-    <div class="card">
-      <div class="card-title">Top clientes</div>
-      <div class="legend">
-        <span><span class="legend-dot" style="background:var(--green)"></span>Futura</span>
-        <span><span class="legend-dot" style="background:var(--red)"></span>Vencida</span>
-      </div>
-      <div style="position:relative;height:200px"><canvas id="cxcCliChart"></canvas></div>
-    </div>
+    <div style="position:relative;height:200px"><canvas id="cxcMesChart"></canvas></div>
   </div>
   <div class="card">
     <div class="card-title">Detalle de facturas</div>
@@ -550,7 +523,6 @@ renderCxc();
 
   <!-- FILTER BAR — all selects -->
   <div id="pyg-filter-bar" style="background:var(--surface);border-bottom:1px solid var(--border);padding:8px 32px;margin:-28px -32px 24px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:100">
-    <button class="chip pyg-cc active" onclick="PYG_setCCChip('TOTAL',this)">Todos</button>
     <div style="display:flex;align-items:center;gap:6px">
       <label style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em">Año</label>
       <select id="pyg_yearSelect" onchange="PYG_setYear(this.value)" style="font-size:12px;padding:5px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer">
@@ -560,6 +532,7 @@ renderCxc();
       </select>
     </div>
     <div style="width:1px;height:20px;background:var(--border)"></div>
+    <button class="chip pyg-cc active" onclick="PYG_setCCChip('TOTAL',this)">Todos</button>
     <button class="chip pyg-cc comm" onclick="PYG_setCCChip('COMUNICACION',this)">Comunicación</button>
     <button class="chip pyg-cc aapp" onclick="PYG_setCCChip('ASUNTOS PUBLICOS',this)">Asuntos Públicos</button>
     <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
@@ -576,15 +549,6 @@ renderCxc();
         <!-- populated dynamically by PYG_initCharts() based on PYG_MONTHS -->
       </div>
     </div>
-    <div style="width:1px;height:16px;background:var(--border);margin:0 6px"></div>
-    <select id="pyg_detSelect" onchange="PYG_setDetSelect(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text-2);font-family:'DM Mono',monospace;cursor:pointer">
-      <option value="todos">Todos los CC</option>
-      <option value="A1">A1 · Com. Base</option>
-      <option value="A2">A2 · AAPP Base</option>
-      <option value="A10">A10 · Proy. Com.</option>
-      <option value="A11">A11 · Proy. AAPP</option>
-      <option value="A13">A13 · Enc. Fiduciario</option>
-    </select>
     <span id="pyg_badge" style="margin-left:auto;font-size:10px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:20px;background:var(--surface2);color:var(--text-2)">Consolidado · Acumulado</span>
   </div>
 
@@ -1686,7 +1650,6 @@ function BVR_init() {
 <div id="tab-fac" class="tab-content">
 
   <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:8px 32px;margin:-28px -32px 24px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:100">
-    <button class="chip fac-cc active" onclick="FAC_setCC('TOTAL',this)">Todos</button>
     <div style="display:flex;align-items:center;gap:6px">
       <label style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em">Año</label>
       <select id="fac_yearSelect" onchange="FAC_setYear(this.value)" style="font-size:12px;padding:5px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer">
@@ -1695,6 +1658,7 @@ function BVR_init() {
       </select>
     </div>
     <div style="width:1px;height:20px;background:var(--border)"></div>
+    <button class="chip fac-cc active" onclick="FAC_setCC('TOTAL',this)">Todos</button>
     <button class="chip fac-cc comm" onclick="FAC_setCC('COMUNICACION',this)">Comunicación</button>
     <button class="chip fac-cc aapp" onclick="FAC_setCC('ASUNTOS PUBLICOS',this)">Asuntos Públicos</button>
     <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
@@ -1712,9 +1676,13 @@ function BVR_init() {
           <div class="mes-dropdown-sep"></div>
         </div>
       </div>
-    <select id="fac_clienteSelect" onchange="FAC_setCliente(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text-2);font-family:'DM Mono',monospace;cursor:pointer;max-width:260px">
-      <option value="">Todos los clientes</option>
-    </select>
+    <div id="fac_clienteWrap" style="position:relative">
+      <input id="fac_clienteSearch" type="text" placeholder="Buscar cliente…" autocomplete="off"
+        oninput="FAC_clienteInput(this.value)" onfocus="FAC_clienteInput(this.value)"
+        style="font-size:11px;padding:4px 28px 4px 8px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;width:220px;outline:none">
+      <span id="fac_clienteClear" onclick="FAC_clienteClear()" style="display:none;position:absolute;right:7px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:13px;color:var(--text-3);line-height:1">✕</span>
+      <div id="fac_clienteDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-sm);box-shadow:0 4px 16px rgba(0,0,0,0.12);min-width:280px;max-height:240px;overflow-y:auto"></div>
+    </div>
     <span style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;margin-left:auto">* Clientes compartidos reasignados por % según regla de CC</span>
   </div>
 
@@ -1769,17 +1737,44 @@ const FAC_fmtD = v => (v<0?'(':'')+'$'+Math.abs(v).toLocaleString('es-EC',{minim
 const FAC_fmtk = v => '$'+(Math.abs(v)/1000).toFixed(1)+'k';
 const FAC_TC = 'rgba(0,0,0,0.35)', FAC_GC = 'rgba(0,0,0,0.06)';
 
+let FAC_clienteList = [];
+
 function FAC_buildClientSelect() {
   const tots = {};
   FAC_RAW.forEach(r => { tots[r.cliente]=(tots[r.cliente]||0)+r.valor; });
-  const sorted = Object.keys(tots).sort((a,b)=>tots[b]-tots[a]);
-  const sel = document.getElementById('fac_clienteSelect');
-  sel.innerHTML = '<option value="">Todos los clientes</option>';
-  sorted.forEach(c => {
-    const o = document.createElement('option');
-    o.value = c; o.textContent = c;
-    sel.appendChild(o);
-  });
+  FAC_clienteList = Object.keys(tots).sort((a,b)=>tots[b]-tots[a]);
+}
+
+function FAC_clienteInput(val) {
+  const q = val.trim().toLowerCase();
+  const dd = document.getElementById('fac_clienteDropdown');
+  const clr = document.getElementById('fac_clienteClear');
+  clr.style.display = val ? '' : 'none';
+  // If exact match or empty — don't show dropdown while actively selected
+  const matches = q ? FAC_clienteList.filter(c => c.toLowerCase().includes(q)).slice(0, 30) : [];
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map(c =>
+    `<div onclick="FAC_clienteSelect('${c.replace(/'/g,"\'")}','${c.replace(/'/g,"\'")}')"
+      style="padding:6px 12px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)"
+      onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">${c}</div>`
+  ).join('');
+  dd.style.display = '';
+}
+
+function FAC_clienteSelect(val, label) {
+  FAC_curCliente = val;
+  document.getElementById('fac_clienteSearch').value = label;
+  document.getElementById('fac_clienteDropdown').style.display = 'none';
+  document.getElementById('fac_clienteClear').style.display = '';
+  FAC_render();
+}
+
+function FAC_clienteClear() {
+  FAC_curCliente = '';
+  document.getElementById('fac_clienteSearch').value = '';
+  document.getElementById('fac_clienteDropdown').style.display = 'none';
+  document.getElementById('fac_clienteClear').style.display = 'none';
+  FAC_render();
 }
 
 function FAC_mesLabel() {
@@ -1935,7 +1930,7 @@ function FAC_setMesMulti(sel) {
 }
 
 function FAC_setMes(m){FAC_curMes=m;FAC_render();}
-function FAC_setCliente(c){FAC_curCliente=c;FAC_render();}
+
 
 function FAC_render(){
   FAC_renderKPIs();
@@ -1985,6 +1980,13 @@ function FAC_init(){
   updateMesBtn('fac', [0]);
   FAC_buildClientSelect();
   FAC_render();
+  // Close cliente dropdown on outside click
+  document.addEventListener('click', e => {
+    const wrap = document.getElementById('fac_clienteWrap');
+    if (wrap && !wrap.contains(e.target)) {
+      document.getElementById('fac_clienteDropdown').style.display = 'none';
+    }
+  });
 }
 </script>
 
