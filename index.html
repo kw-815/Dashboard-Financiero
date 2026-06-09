@@ -1763,6 +1763,13 @@ function BVR_init() {
     <div style="width:1px;height:20px;background:var(--border)"></div>
     <button class="chip fac-cc comm" onclick="FAC_setCC('COMUNICACION',this)">Comunicación</button>
     <button class="chip fac-cc aapp" onclick="FAC_setCC('ASUNTOS PUBLICOS',this)">Asuntos Públicos</button>
+    <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
+    <div id="fac_tipoWrap" style="display:flex;align-items:center;gap:4px">
+      <button class="chip fac-tipo active" onclick="FAC_setTipo('TODOS',this)">Todo</button>
+      <button class="chip fac-tipo" id="fac_tipoFijo" onclick="FAC_setTipo('fija',this)">Fijo</button>
+      <button class="chip fac-tipo" id="fac_tipoEsp" onclick="FAC_setTipo('especial',this)">Proyectos esp.</button>
+      <button class="chip fac-tipo" id="fac_tipoFid" onclick="FAC_setTipo('fiduciario',this)" style="display:none">Enc. Fiduciario</button>
+    </div>
     <div style="width:1px;height:16px;background:var(--border);margin:0 6px"></div>
     <div class="mes-dropdown" id="fac_mesDrop">
         <button class="mes-dropdown-btn" id="fac_mesBtn" onclick="toggleMesDrop('fac')">Acumulado</button>
@@ -1821,6 +1828,7 @@ let FAC_RAW = FAC_ALL_RAW[2026];
 let FAC_curCC = 'TOTAL';
 let FAC_curMes = 0;
 let FAC_curCliente = '';
+let FAC_curTipo = 'TODOS';  // TODOS | fija | especial | fiduciario
 let FAC_mesCh, FAC_topCh;
 const FAC_fmt  = v => (v<0?'(':'')+'$'+Math.abs(v).toLocaleString('es-EC',{minimumFractionDigits:0,maximumFractionDigits:0})+(v<0?')':'');
 const FAC_fmtD = v => (v<0?'(':'')+'$'+Math.abs(v).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2})+(v<0?')':'');
@@ -1859,6 +1867,11 @@ function FAC_filtered() {
       if (!FAC_curMes.includes(r.mes)) return false;
     } else if (FAC_curMes !== 0 && r.mes !== FAC_curMes) return false;
     if (FAC_curCliente && r.cliente !== FAC_curCliente) return false;
+    if (FAC_curTipo !== 'TODOS') {
+      if (FAC_curTipo === 'fija'       && r.tipo !== 'fija')       return false;
+      if (FAC_curTipo === 'especial'   && r.cc !== 'A10' && r.cc !== 'A11') return false;
+      if (FAC_curTipo === 'fiduciario' && r.cc !== 'A13')           return false;
+    }
     return true;
   });
 }
@@ -1957,9 +1970,23 @@ function FAC_renderTable() {
   document.getElementById('fac_tableNote').textContent = sorted.length + ' clientes · ' + allMonths.map(m=>MNS[m]).join(', ');
 }
 
-function FAC_setCC(cc,btn){
-  FAC_curCC=cc;
-  document.querySelectorAll('.fac-cc').forEach(b=>b.classList.remove('active'));
+function FAC_setCC(cc, btn) {
+  FAC_curCC = cc;
+  document.querySelectorAll('.fac-cc').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Reset tipo to TODOS when changing group
+  FAC_curTipo = 'TODOS';
+  document.querySelectorAll('.fac-tipo').forEach(b => b.classList.remove('active'));
+  document.querySelector('.fac-tipo').classList.add('active');
+  // Show/hide Fiduciario chip (A13 only exists in AAPP)
+  const fidBtn = document.getElementById('fac_tipoFid');
+  if (fidBtn) fidBtn.style.display = (cc === 'ASUNTOS PUBLICOS' || cc === 'TOTAL') ? '' : 'none';
+  FAC_render();
+}
+
+function FAC_setTipo(tipo, btn) {
+  FAC_curTipo = tipo;
+  document.querySelectorAll('.fac-tipo').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   FAC_render();
 }
@@ -1987,7 +2014,7 @@ function FAC_render(){
 function FAC_setYear(year) {
   const yr = parseInt(year);
   FAC_RAW = (typeof FAC_ALL_RAW !== 'undefined' ? FAC_ALL_RAW[yr] : []) || [];
-  FAC_curCC = 'TOTAL'; FAC_curMes = 0; FAC_curCliente = '';
+  FAC_curCC = 'TOTAL'; FAC_curMes = 0; FAC_curCliente = ''; FAC_curTipo = 'TODOS';
   document.getElementById('fac_ccSelect') && (document.getElementById('fac_ccSelect').value='TOTAL');
   document.getElementById('fac_mesSelect') && (document.getElementById('fac_mesSelect').value='0');
   // Rebuild FAC checkbox panel for new year's months
