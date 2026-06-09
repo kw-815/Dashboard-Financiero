@@ -1751,7 +1751,7 @@ function BVR_init() {
 <!-- ══ TAB 5: FACTURACIÓN ══ -->
 <div id="tab-fac" class="tab-content">
 
-  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:8px 32px;margin:-28px -32px 24px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:8px 32px;margin:-28px -32px 24px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:100">
     <button class="chip fac-cc active" onclick="FAC_setCC('TOTAL',this)">Todos</button>
     <div style="display:flex;align-items:center;gap:6px">
       <label style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em">Año</label>
@@ -1777,37 +1777,19 @@ function BVR_init() {
     <span style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;margin-left:auto">* Clientes compartidos reasignados por % según regla de CC</span>
   </div>
 
-  <div class="metrics" style="grid-template-columns:repeat(4,1fr)">
+  <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
     <div class="metric"><div class="metric-label">Facturación total</div><div class="metric-value" id="fac_kTotal">—</div><div class="metric-sub" id="fac_kTotalSub">período</div></div>
     <div class="metric"><div class="metric-label">Comunicación</div><div class="metric-value" id="fac_kCom">—</div><div class="metric-sub" id="fac_kComPct">A1 + A10</div></div>
     <div class="metric"><div class="metric-label">Asuntos Públicos</div><div class="metric-value" id="fac_kAapp">—</div><div class="metric-sub" id="fac_kAappPct">A2 + A11</div></div>
-    <div class="metric"><div class="metric-label">Clientes activos</div><div class="metric-value" id="fac_kClientes">—</div><div class="metric-sub">en el período</div></div>
   </div>
 
-  <div class="grid2" style="margin-bottom:14px">
-    <div class="card">
-      <div class="card-title">Evolución mensual por grupo</div>
-      <div class="legend">
-        <span><span class="legend-dot" style="background:var(--gold)"></span>Comunicación</span>
-        <span><span class="legend-dot" style="background:var(--blue)"></span>Asuntos Públicos</span>
-      </div>
-      <div style="position:relative;height:210px"><canvas id="fac_mesChart"></canvas></div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Evolución mensual por grupo</div>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:var(--gold)"></span>Comunicación</span>
+      <span><span class="legend-dot" style="background:var(--blue)"></span>Asuntos Públicos</span>
     </div>
-    <div class="card">
-      <div class="card-title">Top 10 clientes · <span id="fac_topLabel">Acumulado</span></div>
-      <div style="position:relative;height:210px"><canvas id="fac_topChart"></canvas></div>
-    </div>
-  </div>
-
-  <div class="grid2" style="margin-bottom:14px">
-    <div class="card">
-      <div class="card-title" style="color:var(--gold)">Comunicación — desglose por CC</div>
-      <div id="fac_barsCom" style="margin-top:4px"></div>
-    </div>
-    <div class="card">
-      <div class="card-title" style="color:var(--blue)">Asuntos Públicos — desglose por CC</div>
-      <div id="fac_barsAapp" style="margin-top:4px"></div>
-    </div>
+    <div style="position:relative;height:220px"><canvas id="fac_mesChart"></canvas></div>
   </div>
 
   <div class="card">
@@ -1976,55 +1958,60 @@ function FAC_renderCCBars() {
 
 function FAC_renderTable() {
   const d = FAC_filtered();
+  const allMonths = [...new Set(FAC_RAW.map(r=>r.mes))].sort((a,b)=>a-b);
+  const MNS = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'};
+
   const byClient = {};
-  d.forEach(r=>{
-    if(!byClient[r.cliente]) byClient[r.cliente]={grupo:r.grupo,ccs:{},total:0};
-    byClient[r.cliente].ccs[r.cc]=(byClient[r.cliente].ccs[r.cc]||0)+r.valor;
-    byClient[r.cliente].total+=r.valor;
+  d.forEach(r => {
+    if (!byClient[r.cliente]) byClient[r.cliente] = { grupo: r.grupo, months: {}, total: 0 };
+    byClient[r.cliente].months[r.mes] = (byClient[r.cliente].months[r.mes] || 0) + r.valor;
+    byClient[r.cliente].total += r.valor;
   });
-  const sorted = Object.entries(byClient).sort((a,b)=>b[1].total-a[1].total);
-  const allCCs = ['A1','A2','A10','A11','A13'];
-  const visCCs = allCCs.filter(cc=>d.some(r=>r.cc===cc));
-  const grandTotal = sorted.reduce((a,[,v])=>a+v.total,0);
+  const sorted = Object.entries(byClient).sort((a,b) => b[1].total - a[1].total);
+  const grandTotal = sorted.reduce((a,[,v]) => a + v.total, 0);
+  const grandByMonth = {};
+  allMonths.forEach(m => { grandByMonth[m] = d.filter(r=>r.mes===m).reduce((a,r)=>a+r.valor,0); });
 
-  let html='<tr>'+
-    '<th style="text-align:left;padding:0 0 8px;font-size:9px;color:var(--text-3);font-family:\'DM Mono\',monospace;letter-spacing:.05em;text-transform:uppercase;min-width:200px">Cliente</th>'+
-    '<th style="text-align:left;padding:0 8px 8px;font-size:9px;color:var(--text-3);font-family:\'DM Mono\',monospace;text-transform:uppercase">Grupo</th>'+
-    visCCs.map(cc=>'<th style="text-align:right;padding:0 8px 8px;font-size:9px;color:var(--text-3);font-family:\'DM Mono\',monospace;text-transform:uppercase">'+cc+'</th>').join('')+
-    '<th style="text-align:right;padding:0 0 8px 12px;font-size:9px;color:var(--text-3);font-family:\'DM Mono\',monospace;text-transform:uppercase;border-left:2px solid var(--border)">Total</th></tr>';
+  const thStyle = "text-align:right;padding:0 8px 8px;font-size:9px;color:var(--text-3);font-family:'DM Mono',monospace;text-transform:uppercase";
+  let html = '<thead><tr>' +
+    '<th style="text-align:left;padding:0 0 8px;font-size:9px;color:var(--text-3);font-family:\'DM Mono\',monospace;letter-spacing:.05em;text-transform:uppercase;min-width:200px">Cliente</th>' +
+    '<th style="text-align:left;padding:0 8px 8px;font-size:9px;color:var(--text-3);font-family:\'DM Mono\',monospace;text-transform:uppercase">Grupo</th>' +
+    allMonths.map(m => '<th style="'+thStyle+'">'+MNS[m]+'</th>').join('') +
+    '<th style="text-align:right;padding:0 0 8px 12px;font-size:9px;color:var(--text-3);font-family:\'DM Mono\',monospace;text-transform:uppercase;border-left:2px solid var(--border)">Total</th>' +
+    '</tr></thead><tbody>';
 
-  sorted.forEach(([cl,info])=>{
-    const isComm=info.grupo==='COMUNICACION';
-    const dot=isComm?'var(--gold)':'var(--blue)';
-    const pct=(info.total/grandTotal*100).toFixed(1);
-    const ccCells=visCCs.map(cc=>{
-      const v=info.ccs[cc]||0;
-      return '<td style="text-align:right;padding:5px 8px;border-bottom:1px solid var(--border);font-family:\'DM Mono\',monospace;font-size:11px;color:'+(v<0?'var(--red)':'var(--text-2)')+'">'+( v?FAC_fmtD(v):'—')+'</td>';
+  sorted.forEach(([cl, info]) => {
+    const isComm = info.grupo === 'COMUNICACION';
+    const dot = isComm ? 'var(--gold)' : 'var(--blue)';
+    const pct = grandTotal > 0 ? (info.total / grandTotal * 100).toFixed(1) : '0.0';
+    const mCells = allMonths.map(m => {
+      const v = info.months[m] || 0;
+      const clr = v < 0 ? 'var(--red)' : v > 0 ? 'var(--text)' : 'var(--text-3)';
+      return '<td style="text-align:right;padding:5px 8px;border-bottom:1px solid var(--border);font-family:\'DM Mono\',monospace;font-size:11px;color:'+clr+'">'+(v ? FAC_fmtD(v) : '—')+'</td>';
     }).join('');
-    html+='<tr>'+
-      '<td style="padding:5px 0;border-bottom:1px solid var(--border);font-size:11.5px;max-width:220px">'+
-      '<div style="display:flex;align-items:center;gap:6px">'+
-      '<span style="width:6px;height:6px;border-radius:50%;background:'+dot+';flex-shrink:0"></span>'+
-      '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+cl+'">'+cl+'</span>'+
-      '</div></td>'+
-      '<td style="padding:5px 8px;border-bottom:1px solid var(--border);font-size:10px;font-family:\'DM Mono\',monospace;color:'+(isComm?'var(--gold)':'var(--blue)')+'">'+( isComm?'COM':'AAPP')+'</td>'+
-      ccCells+
-      '<td style="text-align:right;padding:5px 0 5px 12px;border-bottom:1px solid var(--border);border-left:2px solid var(--border);font-weight:600;font-family:\'DM Mono\',monospace;font-size:11.5px">'+FAC_fmtD(info.total)+' <span style="font-size:9px;color:var(--text-3);font-weight:400">'+pct+'%</span></td>'+
+    html += '<tr>' +
+      '<td style="padding:5px 0;border-bottom:1px solid var(--border);font-size:11.5px;max-width:220px">' +
+      '<div style="display:flex;align-items:center;gap:6px">' +
+      '<span style="width:6px;height:6px;border-radius:50%;background:'+dot+';flex-shrink:0"></span>' +
+      '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+cl+'">'+cl+'</span>' +
+      '</div></td>' +
+      '<td style="padding:5px 8px;border-bottom:1px solid var(--border);font-size:10px;font-family:\'DM Mono\',monospace;color:'+(isComm?'var(--gold)':'var(--blue)')+'">'+( isComm?'COM':'AAPP')+'</td>' +
+      mCells +
+      '<td style="text-align:right;padding:5px 0 5px 12px;border-bottom:1px solid var(--border);border-left:2px solid var(--border);font-weight:600;font-family:\'DM Mono\',monospace;font-size:11.5px">'+FAC_fmtD(info.total)+' <span style="font-size:9px;color:var(--text-3);font-weight:400">'+pct+'%</span></td>' +
       '</tr>';
   });
 
-  const ccGrandCells=visCCs.map(cc=>{
-    const v=d.filter(r=>r.cc===cc).reduce((a,r)=>a+r.valor,0);
-    return '<td style="text-align:right;padding:7px 8px;font-weight:700;font-family:\'DM Mono\',monospace;font-size:12px">'+FAC_fmtD(v)+'</td>';
+  const mGrandCells = allMonths.map(m => {
+    return '<td style="text-align:right;padding:7px 8px;font-weight:700;font-family:\'DM Mono\',monospace;font-size:12px">'+FAC_fmtD(grandByMonth[m]||0)+'</td>';
   }).join('');
-  html+='<tr style="background:var(--surface2)">'+
-    '<td colspan="2" style="padding:7px 0;font-weight:700;font-size:12px">Total</td>'+
-    ccGrandCells+
-    '<td style="text-align:right;padding:7px 0 7px 12px;border-left:2px solid var(--border);font-weight:700;font-family:\'DM Mono\',monospace;font-size:13px">'+FAC_fmtD(grandTotal)+'</td>'+
-    '</tr>';
+  html += '</tbody><tfoot><tr style="background:var(--surface2)">' +
+    '<td colspan="2" style="padding:7px 0;font-weight:700;font-size:12px">Total</td>' +
+    mGrandCells +
+    '<td style="text-align:right;padding:7px 0 7px 12px;border-left:2px solid var(--border);font-weight:700;font-family:\'DM Mono\',monospace;font-size:13px">'+FAC_fmtD(grandTotal)+'</td>' +
+    '</tfoot>';
 
-  document.getElementById('fac_table').innerHTML=html;
-  document.getElementById('fac_tableNote').textContent=sorted.length+' clientes · '+visCCs.join(', ');
+  document.getElementById('fac_table').innerHTML = html;
+  document.getElementById('fac_tableNote').textContent = sorted.length + ' clientes · ' + allMonths.map(m=>MNS[m]).join(', ');
 }
 
 function FAC_setCC(cc,btn){
@@ -2051,8 +2038,6 @@ function FAC_setCliente(c){FAC_curCliente=c;FAC_render();}
 function FAC_render(){
   FAC_renderKPIs();
   FAC_renderMesChart();
-  FAC_renderTopChart();
-  FAC_renderCCBars();
   FAC_renderTable();
 }
 
