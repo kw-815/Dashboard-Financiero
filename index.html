@@ -408,16 +408,7 @@ new Chart(document.getElementById('monthlyChart'),{
 });
 
 const maxSF=Math.max(...SALDO_DATA.map(d=>d.sf));
-const barsEl=document.getElementById('saldoBars');
-SALDO_DATA.forEach(d=>{
-  const pct=(d.sf/maxSF*100).toFixed(1),chg=d.sf-d.si;
-  barsEl.innerHTML+=`<div class="saldo-row">
-    <div class="saldo-name">${d.banco} <span class="pill ${d.type==='inv'?'pill-inv':'pill-bank'}">${d.type==='inv'?'inv.':'banco'}</span></div>
-    <div class="saldo-bar-wrap"><div class="saldo-bar ${d.type==='inv'?'bar-inv':'bar-bank'}" style="width:${pct}%"></div></div>
-    <div class="saldo-val">${fmt(d.sf)}</div>
-    <div class="saldo-chg ${chg>=0?'pos':'neg'}">${fmtChg(chg)}</div>
-  </div>`;
-});
+
 
 const bt=document.getElementById('bancoTbody');
 let tSI=0,tING=0,tEGR=0,tSF=0;
@@ -1088,46 +1079,45 @@ function PYG_render() {
     <button class="chip bvr-cc active" onclick="BVR_setCC('TOTAL',this)">Consolidado</button>
     <button class="chip bvr-cc comm" onclick="BVR_setCC('COMUNICACION',this)">Comunicación</button>
     <button class="chip bvr-cc aapp" onclick="BVR_setCC('ASUNTOS PUBLICOS',this)">Asuntos Públicos</button>
-    <span style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;margin-left:auto">Datos reales: Ene–Abr 2026 · Presupuesto: Ene–Dic 2026</span>
+    <span id="bvr_filterLabel" style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;margin-left:auto">Presupuesto: Ene–Dic 2026</span>
   </div>
 
-  <!-- KPIs de avance -->
+  <!-- KPIs — 4 cards: Ingresos, Costos+Gastos, Resultado antes imp., Utilidad neta -->
   <div class="metrics" style="grid-template-columns:repeat(4,1fr)">
     <div class="metric">
-      <div class="metric-label">Ingresos reales YTD</div>
+      <div class="metric-label">Ingresos YTD</div>
       <div class="metric-value" id="bvr_kIngReal">—</div>
-      <div class="metric-sub" id="bvr_kIngSub">vs presupuesto acumulado</div>
+      <div class="metric-sub" id="bvr_kIngSub">—</div>
     </div>
     <div class="metric">
-      <div class="metric-label">Ejecución ingresos</div>
-      <div class="metric-value" id="bvr_kIngPct">—</div>
-      <div class="metric-sub" id="bvr_kIngPctSub">del presupuesto YTD</div>
+      <div class="metric-label">Costos y gastos YTD</div>
+      <div class="metric-value" id="bvr_kCosgas">—</div>
+      <div class="metric-sub" id="bvr_kCosgasSub">—</div>
     </div>
     <div class="metric">
-      <div class="metric-label">Utilidad neta YTD</div>
+      <div class="metric-label">Resultado antes imp. YTD</div>
       <div class="metric-value" id="bvr_kResReal">—</div>
       <div class="metric-sub" id="bvr_kResSub">—</div>
     </div>
     <div class="metric">
-      <div class="metric-label">Ejecución resultado</div>
-      <div class="metric-value" id="bvr_kResPct">—</div>
-      <div class="metric-sub" id="bvr_kResPctSub">del presupuesto anual</div>
+      <div class="metric-label">Utilidad neta YTD</div>
+      <div class="metric-value" id="bvr_kNeta">—</div>
+      <div class="metric-sub" id="bvr_kNetaSub">—</div>
     </div>
   </div>
 
-  <!-- Charts row -->
-  <div class="grid2" style="margin-bottom:14px">
-    
-  <!-- ANNUAL BUDGET SUMMARY -->
+  <!-- Annual summary table -->
   <div class="card" style="margin-bottom:14px" id="bvr_annualCard">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div class="card-title" style="margin-bottom:0">Metas anuales 2026</div>
-      <span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text-3)" id="bvr_annualSub">YTD vs Presupuesto año completo</span>
+      <div id="bvr_badge" style="font-size:10px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:5px;background:var(--surface2);color:var(--text-2)">Consolidado</div>
     </div>
     <div id="bvr_annualRows"></div>
   </div>
 
-<div class="card">
+  <!-- Charts -->
+  <div class="grid2" style="margin-bottom:14px">
+    <div class="card">
       <div class="card-title">Ingresos: Real vs. Presupuesto mensual</div>
       <div class="legend">
         <span><span class="legend-dot" style="background:var(--gold)"></span>Real</span>
@@ -1136,7 +1126,7 @@ function PYG_render() {
       <div style="position:relative;height:220px"><canvas id="bvr_ingChart"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-title">Resultado: Real vs. Presupuesto mensual</div>
+      <div class="card-title">Resultado neto: Real vs. Presupuesto mensual</div>
       <div class="legend">
         <span><span class="legend-dot" style="background:var(--green)"></span>Real</span>
         <span><span class="legend-dot" style="background:rgba(26,107,74,0.25);border:1.5px dashed var(--green)"></span>Presupuesto</span>
@@ -1145,29 +1135,17 @@ function PYG_render() {
     </div>
   </div>
 
-  <!-- Waterfall variación -->
-  <div class="grid2" style="margin-bottom:14px">
-    <div class="card">
-      <div class="card-title">Variación acumulada (Real − Presupuesto)</div>
-      <div style="position:relative;height:180px"><canvas id="bvr_varChart"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title">% Ejecución por línea · Acumulado Ene–Abr</div>
-      <div id="bvr_execBars" style="margin-top:4px"></div>
-    </div>
-  </div>
-
   <!-- Detail table -->
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div class="card-title" style="margin-bottom:0">Detalle mensual · Real vs. Presupuesto</div>
-      <div id="bvr_badge" style="font-size:10px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:5px;background:var(--surface2);color:var(--text-2)">Consolidado</div>
+      <span style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace">Real · Ppto · Variación por mes</span>
     </div>
     <div style="overflow-x:auto">
       <table id="bvr_table" style="width:100%;border-collapse:collapse;font-size:12px"></table>
     </div>
     <div style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;margin-top:10px">
-      * Presupuesto mensual según plan aprobado 2026. Real = datos del mayor contable. Variación = Real − Presupuesto. Favorable cuando positivo para ingresos/resultado, negativo para costos y gastos.
+      * Presupuesto según plan aprobado 2026. Variación = Real − Presupuesto. Verde = favorable, rojo = desfavorable.
     </div>
   </div>
 
@@ -1292,7 +1270,7 @@ function BVR_getBudAcum(cc, upToMonth) {
 }
 
 // ── Charts ──
-let BVR_ingCh, BVR_resCh, BVR_varCh;
+let BVR_ingCh, BVR_resCh;
 
 function BVR_initCharts() {
   const cc = BVR_curCC;
@@ -1336,93 +1314,53 @@ function BVR_initCharts() {
               y:{ticks:{color:BVR_TC,font:{size:9,family:'DM Mono'},callback:BVR_fmtk},grid:{color:BVR_GC},border:{display:false}}}}
   });
 
-  // Variación acumulada chart (Real-Bud por mes)
-  const varLabels = BVR_REAL_MONTHS.map(m=>BVR_MN[m]);
-  const varData = BVR_REAL_MONTHS.map(m=>{
-    const r=BVR_getReal(m,cc), b=BVR_BUD[cc][m];
-    return {ing:r.ing-b.ing, res:r.res-b.res};
-  });
-  if(BVR_varCh) BVR_varCh.destroy();
-  BVR_varCh = new Chart(document.getElementById('bvr_varChart'),{
-    type:'bar',
-    data:{labels:varLabels,datasets:[
-      {label:'Var. Ingresos',data:varData.map(v=>v.ing),backgroundColor:varData.map(v=>v.ing>=0?'rgba(26,107,74,0.65)':'rgba(139,43,26,0.65)'),borderRadius:3,borderSkipped:false},
-      {label:'Var. Resultado',data:varData.map(v=>v.res),backgroundColor:varData.map(v=>v.res>=0?'rgba(26,107,74,0.3)':'rgba(139,43,26,0.3)'),borderRadius:3,borderSkipped:false}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{labels:{font:{size:10,family:'DM Mono'},color:BVR_TC,boxWidth:8,padding:10}},
-               tooltip:{callbacks:{label:c=>c.dataset.label+': '+BVR_fmtk(c.raw)}}},
-      scales:{x:{ticks:{color:BVR_TC,font:{size:10,family:'DM Mono'}},grid:{display:false}},
-              y:{ticks:{color:BVR_TC,font:{size:9,family:'DM Mono'},callback:BVR_fmtk},grid:{color:BVR_GC},border:{display:false}}}}
-  });
-}
 
 // ── Execution bars ──
-function BVR_renderExecBars() {
-  const cc = BVR_curCC;
-  const real = BVR_getRealAcum(cc);
-  const bud  = BVR_getBudAcum(cc, 4); // presupuesto de los mismos 4 meses
-  const budAnual = BVR_getBudAcum(cc, 12);
-
-  const lines = [
-    {label:'Ingresos',     real:real.ing,    bud:bud.ing,    color:'var(--gold)',  fav: true},
-    {label:'Costos',       real:real.costo,  bud:bud.costo,  color:'var(--red)',   fav: false},
-    {label:'Gastos op.',   real:real.gastos, bud:bud.gastos, color:'var(--red)',   fav: false},
-    {label:'Utilidad neta', real:real.neta,   bud:bud.neta,   color:'var(--green)', fav: true},
-    {label:'Util. neta',   real:real.neta,   bud:bud.neta,   color:'var(--green)', fav: true},
-  ];
-
-  document.getElementById('bvr_execBars').innerHTML = lines.map(l=>{
-    const pct = l.bud !== 0 ? (l.real/l.bud*100) : 0;
-    const var_ = l.real - l.bud;
-    const favorable = l.fav ? var_>=0 : var_<=0;
-    const varColor = favorable ? 'var(--green)' : 'var(--red)';
-    const barW = Math.min(Math.abs(pct), 140); // cap bar at 140% visually
-    return `<div class="wf-row" style="gap:6px">
-      <div class="wf-label" style="font-size:11px;width:100px">${l.label}</div>
-      <div class="wf-bar-wrap" style="position:relative;height:8px;flex:1">
-        <div style="position:absolute;top:0;left:0;width:100%;height:8px;background:var(--surface2);border-radius:4px"></div>
-        <div style="position:absolute;top:0;left:0;width:${barW}%;max-width:100%;height:8px;background:${l.color};opacity:0.55;border-radius:4px"></div>
-        ${pct>100?`<div style="position:absolute;top:-1px;left:99%;width:2px;height:10px;background:var(--text-3);border-radius:1px"></div>`:''}
-      </div>
-      <div style="font-size:11px;font-family:'DM Mono',monospace;width:42px;text-align:right;color:${l.color}">${pct.toFixed(0)}%</div>
-      <div style="font-size:10px;font-family:'DM Mono',monospace;width:88px;text-align:right;color:${varColor}">${var_>=0?'+':''}${BVR_fmt(var_)}</div>
-    </div>`;
-  }).join('');
-}
 
 // ── KPIs ──
 function BVR_renderKPIs() {
   const cc = BVR_curCC;
-  const real = BVR_getRealAcum(cc);
-  const bud4 = BVR_getBudAcum(cc, 4);
-  const budAnual = BVR_getBudAcum(cc, 12);
+  const n  = BVR_REAL_MONTHS.length;
+  const real   = BVR_getRealAcum(cc);
+  const budYTD = BVR_getBudAcum(cc, n);
+  const periodLbl = 'Ene–'+BVR_MN[BVR_REAL_MONTHS[n-1]];
 
-  const ingPct = bud4.ing>0 ? (real.ing/bud4.ing*100) : 0;
-  const ingVar = real.ing - bud4.ing;
-  const resPct = budAnual.res>0 ? (real.res/budAnual.res*100) : 0;
-  const resVar = real.res - bud4.res;
+  const sub = (realV, budV, fav) => {
+    const v = realV - budV;
+    const sign = v >= 0 ? '+' : '';
+    const cls = (fav ? v >= 0 : v <= 0) ? 'pos' : 'neg';
+    return { txt: sign+BVR_fmt(v)+' vs. ppto '+periodLbl, cls };
+  };
 
+  // Ingresos
   document.getElementById('bvr_kIngReal').textContent = BVR_fmtD(real.ing);
   document.getElementById('bvr_kIngReal').className = 'metric-value';
-  document.getElementById('bvr_kIngSub').textContent = (ingVar>=0?'+':'')+BVR_fmt(ingVar)+' vs. presupuesto Ene–Abr';
+  const ingS = sub(real.ing, budYTD.ing, true);
+  document.getElementById('bvr_kIngSub').textContent = ingS.txt;
+  document.getElementById('bvr_kIngSub').className = 'metric-sub '+ingS.cls;
 
-  const ingPctEl = document.getElementById('bvr_kIngPct');
-  ingPctEl.textContent = ingPct.toFixed(1).replace('.',',')+'\u202f%';
-  ingPctEl.className = 'metric-value '+(ingPct>=100?'pos':'neg');
-  document.getElementById('bvr_kIngPctSub').textContent = 'del presupuesto Ene–Abr';
+  // Costos + Gastos
+  const cosgas = real.costo + real.gastos;
+  const budCosgas = budYTD.costo + budYTD.gastos;
+  document.getElementById('bvr_kCosgas').textContent = BVR_fmtD(cosgas);
+  document.getElementById('bvr_kCosgas').className = 'metric-value';
+  const cosgasS = sub(cosgas, budCosgas, false);
+  document.getElementById('bvr_kCosgasSub').textContent = cosgasS.txt;
+  document.getElementById('bvr_kCosgasSub').className = 'metric-sub '+cosgasS.cls;
 
-  const resEl = document.getElementById('bvr_kResReal');
-  resEl.textContent = BVR_fmtD(real.neta);
-  resEl.className = 'metric-value '+(real.neta>=0?'pos':'neg');
-  const netaVar = real.neta - bud4.neta;
-  document.getElementById('bvr_kResSub').textContent = (netaVar>=0?'+':'')+BVR_fmt(netaVar)+' vs. presupuesto Ene–Abr';
+  // Resultado antes imp.
+  document.getElementById('bvr_kResReal').textContent = BVR_fmtD(real.res);
+  document.getElementById('bvr_kResReal').className = 'metric-value '+(real.res>=0?'pos':'neg');
+  const resS = sub(real.res, budYTD.res, true);
+  document.getElementById('bvr_kResSub').textContent = resS.txt;
+  document.getElementById('bvr_kResSub').className = 'metric-sub '+resS.cls;
 
-  const resPctEl = document.getElementById('bvr_kResPct');
-  const resPctVal = budAnual.neta!==0 ? (real.neta/budAnual.neta*100) : 0;
-  resPctEl.textContent = resPctVal.toFixed(1).replace('.',',')+'\u202f%';
-  resPctEl.className = 'metric-value '+(resPctVal>=33.3?'pos':'neg'); // ~4 of 12 months done
-  document.getElementById('bvr_kResPctSub').textContent = 'del presupuesto anual (4/12 meses)';
+  // Utilidad neta
+  document.getElementById('bvr_kNeta').textContent = BVR_fmtD(real.neta);
+  document.getElementById('bvr_kNeta').className = 'metric-value '+(real.neta>=0?'pos':'neg');
+  const netaS = sub(real.neta, budYTD.neta, true);
+  document.getElementById('bvr_kNetaSub').textContent = netaS.txt;
+  document.getElementById('bvr_kNetaSub').className = 'metric-sub '+netaS.cls;
 
   // Badge
   const b = document.getElementById('bvr_badge');
@@ -1460,7 +1398,7 @@ function BVR_renderTable() {
   // Row builder
   const mkRow = (label, key, favorable_when_positive, cls='', isSec=false, isSub=false, isTotal=false) => {
     const realAcum = BVR_getRealAcum(cc);
-    const budAcum  = BVR_getBudAcum(cc, 4);
+    const budAcum  = BVR_getBudAcum(cc, BVR_REAL_MONTHS.length);
 
     const mCells = months.map(m => {
       const r = BVR_getReal(m, cc);
@@ -1513,7 +1451,7 @@ function BVR_renderTable() {
   // mkRowNeta: budget neta recalculated on consolidated result (not stored per-CC)
   const mkRowNeta = () => {
     const realAcum = BVR_getRealAcum(cc);
-    const budAcum  = BVR_getBudAcum(cc, 4);
+    const budAcum  = BVR_getBudAcum(cc, BVR_REAL_MONTHS.length);
     const mCells = months.map(m => {
       const r = BVR_getReal(m, cc);
       const rv = r.neta;  // per-month tax already applied, matches PyG monthly
@@ -1565,7 +1503,6 @@ function BVR_setCC(cc, btn) {
 function BVR_render() {
   BVR_renderAnnual();
   BVR_renderKPIs();
-  BVR_renderExecBars();
   BVR_renderTable();
   BVR_initCharts();
 }
@@ -1575,7 +1512,8 @@ function BVR_renderAnnual() {
   if (!el) return;
   const cc = BVR_curCC;
   const ytd  = BVR_getRealAcum(cc);              // actual YTD
-  const budYTD  = BVR_getBudAcum(cc, BVR_REAL_MONTHS.length); // budget same months
+  const n = BVR_REAL_MONTHS.length;
+  const budYTD  = BVR_getBudAcum(cc, n); // budget same months — dynamic
   const budFull = BVR_getBudAcum(cc, 12);        // full year budget
 
   const lines = [
