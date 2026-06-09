@@ -20,7 +20,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .tab-btn{font-size:13px;font-weight:500;padding:14px 20px;border:none;background:none;color:var(--text-2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
 .tab-btn.active{color:var(--text);border-bottom-color:var(--text)}
 .tab-btn:hover:not(.active){color:var(--text)}
-.tab-content{display:none;padding:28px 32px 48px;max-width:1200px}
+.tab-content{display:none;padding:28px 32px 48px;max-width:1400px;margin:0 auto;width:100%}
 .tab-content.active{display:block}
 .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
 .metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px}
@@ -188,15 +188,14 @@ table.marg tr:last-child td{border-bottom:none;font-weight:600;color:var(--text)
 </div>
 
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="showTab('flujo',this)">Flujo de Caja</button>
-  <button class="tab-btn" onclick="showTab('cxc',this)">Cuentas por Cobrar</button>
-  <button class="tab-btn" onclick="showTab('pyg',this)">Estado de Resultados</button>
-  <button class="tab-btn" onclick="showTab('bvr',this)">Presupuesto vs. Real</button>
+  <button class="tab-btn active" onclick="showTab('pyg',this)">Estado de Resultados</button>
   <button class="tab-btn" onclick="showTab('fac',this)">Facturación</button>
+  <button class="tab-btn" onclick="showTab('flujo',this)">Flujo & CxC</button>
+  <button class="tab-btn" onclick="showTab('bvr',this)">Presupuesto vs. Real</button>
 </div>
 
 <!-- ══ TAB 1: FLUJO DE CAJA ══ -->
-<div id="tab-flujo" class="tab-content active">
+<div id="tab-flujo" class="tab-content">
 
   <div class="metrics">
     <div class="metric">
@@ -281,10 +280,11 @@ table.marg tr:last-child td{border-bottom:none;font-weight:600;color:var(--text)
       </table>
     </div>
   </div>
-</div>
 
-<!-- ══ TAB 2: CXC ══ -->
-<div id="tab-cxc" class="tab-content">
+  <div class="divider" style="margin:28px 0"></div>
+
+  <!-- ══ CxC SECTION ══ -->
+  <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-family:'DM Mono',monospace;margin-bottom:16px">Cuentas por Cobrar</div>
   <div class="metrics">
     <div class="metric">
       <div class="metric-label">Total CxC</div>
@@ -546,10 +546,11 @@ renderCxc();
 </script>
 
 <!-- TAB 3: ESTADO DE RESULTADOS -->
-<div id="tab-pyg" class="tab-content">
+<div id="tab-pyg" class="tab-content active">
 
   <!-- FILTER BAR — all selects -->
-  <div id="pyg-filter-bar" style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 32px;margin:-28px -32px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+  <div id="pyg-filter-bar" style="background:var(--surface);border-bottom:1px solid var(--border);padding:8px 32px;margin:-28px -32px 24px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:100">
+    <button class="chip pyg-cc active" onclick="PYG_setCCChip('TOTAL',this)">Todos</button>
     <div style="display:flex;align-items:center;gap:6px">
       <label style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em">Año</label>
       <select id="pyg_yearSelect" onchange="PYG_setYear(this.value)" style="font-size:12px;padding:5px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer">
@@ -559,45 +560,31 @@ renderCxc();
       </select>
     </div>
     <div style="width:1px;height:20px;background:var(--border)"></div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <label style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em">Período</label>
-      <div class="mes-dropdown" id="pyg_mesDrop">
-        <button class="mes-dropdown-btn" id="pyg_mesBtn" onclick="toggleMesDrop('pyg')">Acumulado</button>
-        <div class="mes-dropdown-panel" id="pyg_mesPanel">
-          <!-- populated dynamically by PYG_initCharts() based on PYG_MONTHS -->
-        </div>
+    <button class="chip pyg-cc comm" onclick="PYG_setCCChip('COMUNICACION',this)">Comunicación</button>
+    <button class="chip pyg-cc aapp" onclick="PYG_setCCChip('ASUNTOS PUBLICOS',this)">Asuntos Públicos</button>
+    <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
+    <div id="pyg_tipoWrap" style="display:flex;align-items:center;gap:4px">
+      <button class="chip pyg-tipo active" onclick="PYG_setTipoChip('todo',this)">Todo</button>
+      <button class="chip pyg-tipo" onclick="PYG_setTipoChip('fija',this)">Fijo</button>
+      <button class="chip pyg-tipo" onclick="PYG_setTipoChip('especial',this)">Proyectos esp.</button>
+      <button class="chip pyg-tipo" id="pyg_tipoFid" onclick="PYG_setTipoChip('fiduciario',this)">Enc. Fiduciario</button>
+    </div>
+    <div style="width:1px;height:16px;background:var(--border);margin:0 6px"></div>
+    <div class="mes-dropdown" id="pyg_mesDrop">
+      <button class="mes-dropdown-btn" id="pyg_mesBtn" onclick="toggleMesDrop('pyg')">Acumulado</button>
+      <div class="mes-dropdown-panel" id="pyg_mesPanel">
+        <!-- populated dynamically by PYG_initCharts() based on PYG_MONTHS -->
       </div>
     </div>
-    <div style="width:1px;height:20px;background:var(--border)"></div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <label style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em">Vista</label>
-      <select id="pyg_ccSelect" onchange="PYG_setCCSelect(this.value)" style="font-size:12px;padding:5px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer">
-        <option value="TOTAL">Consolidado</option>
-        <option value="COMUNICACION">Comunicación</option>
-        <option value="ASUNTOS PUBLICOS">Asuntos Públicos</option>
-      </select>
-    </div>
-    <div style="width:1px;height:20px;background:var(--border)"></div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <label style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em">Negocio</label>
-      <select id="pyg_tipoSelect" onchange="PYG_setTipoSelect(this.value)" style="font-size:12px;padding:5px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer">
-        <option value="todo">Todo</option>
-        <option value="fija">Base fija</option>
-        <option value="especial">Proyectos especiales</option>
-      </select>
-    </div>
-    <div style="width:1px;height:20px;background:var(--border)"></div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <label style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em">Centro</label>
-      <select id="pyg_detSelect" onchange="PYG_setDetSelect(this.value)" style="font-size:12px;padding:5px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer">
-        <option value="todos">Todos los CC</option>
-        <option value="A1">A1 · Com. Base</option>
-        <option value="A2">A2 · AAPP Base</option>
-        <option value="A10">A10 · Proy. Com.</option>
-        <option value="A11">A11 · Proy. AAPP</option>
-        <option value="A13">A13 · Enc. Fiduciario</option>
-      </select>
-    </div>
+    <div style="width:1px;height:16px;background:var(--border);margin:0 6px"></div>
+    <select id="pyg_detSelect" onchange="PYG_setDetSelect(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text-2);font-family:'DM Mono',monospace;cursor:pointer">
+      <option value="todos">Todos los CC</option>
+      <option value="A1">A1 · Com. Base</option>
+      <option value="A2">A2 · AAPP Base</option>
+      <option value="A10">A10 · Proy. Com.</option>
+      <option value="A11">A11 · Proy. AAPP</option>
+      <option value="A13">A13 · Enc. Fiduciario</option>
+    </select>
     <span id="pyg_badge" style="margin-left:auto;font-size:10px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:20px;background:var(--surface2);color:var(--text-2)">Consolidado · Acumulado</span>
   </div>
 
@@ -622,41 +609,20 @@ renderCxc();
       <div style="overflow-x:auto"><table class="pyg" id="pygTable"></table></div>
     </div>
 
-    <!-- Gastos breakdown + evolution chart -->
-    <div style="display:flex;flex-direction:column;gap:13px">
-      <div class="card">
-        <div class="card-title">Composición gastos operativos</div>
-        <div id="gastosWF"></div>
+    <!-- Evolution chart -->
+    <div class="card">
+      <div class="card-title">Evolución mensual</div>
+      <div class="legend" style="margin-bottom:8px">
+        <span><span class="legend-dot" style="background:var(--gold)"></span>Ingresos</span>
+        <span><span class="legend-dot" style="background:var(--red)"></span>Egresos</span>
+        <span><span class="legend-dot" style="background:var(--green)"></span>M. bruto</span>
+        <span><span class="legend-dot" style="background:var(--blue)"></span>Resultado neto</span>
       </div>
-      <div class="card">
-        <div class="card-title">Evolución mensual</div>
-        <div class="legend" style="margin-bottom:8px">
-          <span><span class="legend-dot" style="background:var(--gold)"></span>Ingresos</span>
-          <span><span class="legend-dot" style="background:var(--green)"></span>M. bruto</span>
-          <span><span class="legend-dot" style="background:var(--red)"></span>Gastos op.</span>
-        </div>
-        <div style="position:relative;height:180px"><canvas id="pyg_evChart"></canvas></div>
-      </div>
+      <div style="position:relative;height:260px"><canvas id="pyg_evChart"></canvas></div>
     </div>
   </div>
 
-  <!-- MARGIN ANALYSIS — chart with metric selector -->
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div class="card-title" style="margin-bottom:0">Análisis de márgenes</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <label style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace">Métrica</label>
-        <select id="pyg_margMetric" onchange="PYG_renderMargenes()" style="font-size:11px;padding:4px 8px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text-2);font-family:'DM Mono',monospace;cursor:pointer">
-          <option value="mb">Margen bruto %</option>
-          <option value="gastos">Gastos / Ingresos %</option>
-          <option value="res">Resultado antes imp. %</option>
-          <option value="neta">Margen neto %</option>
-        </select>
-      </div>
-    </div>
-    <div style="position:relative;height:220px"><canvas id="pyg_margChart"></canvas></div>
-    <div class="marg-note" style="margin-top:12px">* Impuesto: provisión corporativa 33,34% sobre resultado consolidado positivo. A nivel de CC se muestra antes de impuestos.</div>
-  </div>
+
 
 </div>
 
@@ -710,7 +676,8 @@ function PYG_getRows(mes, cc) {
   if (cc === 'COMUNICACION') rows = rows.filter(r => r.grupo === 'COMUNICACION');
   else if (cc === 'ASUNTOS PUBLICOS') rows = rows.filter(r => r.grupo === 'ASUNTOS PUBLICOS');
   if (PYG_curTipo === 'fija') rows = rows.filter(r => r.tipo_neg === 'fija');
-  else if (PYG_curTipo === 'especial') rows = rows.filter(r => r.tipo_neg === 'especial');
+  else if (PYG_curTipo === 'especial') rows = rows.filter(r => r.tipo_neg === 'especial' && r.cc !== 'A13');
+  else if (PYG_curTipo === 'fiduciario') rows = rows.filter(r => r.cc === 'A13');
   if (PYG_curDet !== 'todos') rows = rows.filter(r => r.cc === PYG_curDet);
   return rows;
 }
@@ -753,7 +720,7 @@ function PYG_getData(mes, cc) {
 let PYG_curMes=[0], PYG_curCC='TOTAL', PYG_curTipo='todo', PYG_curDet='todos', PYG_curYear=2026;
 
 // ── CHARTS ──
-let PYG_evCh, PYG_margCh;
+let PYG_evCh;
 
 function PYG_initCharts() {
   // Rebuild month checkbox panel dynamically from PYG_MONTHS
@@ -777,9 +744,10 @@ function PYG_initCharts() {
   PYG_evCh = new Chart(document.getElementById('pyg_evChart'), {
     type:'bar',
     data:{labels, datasets:[
-      {label:'Ingresos',data:ml.map(m=>m.ing),backgroundColor:'rgba(122,92,26,0.55)',borderRadius:3,borderSkipped:false,order:2},
-      {label:'Gastos op.',data:ml.map(m=>m.gastos),backgroundColor:'rgba(139,43,26,0.45)',borderRadius:3,borderSkipped:false,order:2},
-      {label:'Margen bruto',data:ml.map(m=>m.mb),type:'line',borderColor:'var(--green)',borderWidth:2,pointBackgroundColor:'var(--green)',pointRadius:4,fill:false,tension:0.3,order:1},
+      {label:'Ingresos',    data:ml.map(m=>m.ing),   backgroundColor:'rgba(122,92,26,0.55)', borderRadius:3,borderSkipped:false,order:2},
+      {label:'Egresos',     data:ml.map(m=>m.costo+m.gastos), backgroundColor:'rgba(139,43,26,0.40)', borderRadius:3,borderSkipped:false,order:2},
+      {label:'M. bruto',    data:ml.map(m=>m.mb),    type:'line',borderColor:'rgba(26,107,74,0.9)',borderWidth:2,pointBackgroundColor:'rgba(26,107,74,0.9)',pointRadius:4,fill:false,tension:0.3,order:1},
+      {label:'Result. neto',data:ml.map(m=>m.res),   type:'line',borderColor:'rgba(26,63,107,0.9)',borderWidth:2,pointBackgroundColor:'rgba(26,63,107,0.9)',pointRadius:4,fill:false,tension:0.3,order:1,borderDash:[4,3]},
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+PYG_fmtk(c.raw)}}},
@@ -794,13 +762,14 @@ function PYG_updateEvChart() {
   const ml = PYG_MONTHS.map(m => PYG_aggregate(PYG_getRows(m, PYG_curCC)));
   PYG_evCh.data.labels = PYG_MONTHS.map(m=>PYG_MNS[m]);
   PYG_evCh.data.datasets[0].data = ml.map(m=>m.ing);
-  PYG_evCh.data.datasets[1].data = ml.map(m=>m.gastos);
+  PYG_evCh.data.datasets[1].data = ml.map(m=>m.costo+m.gastos);
   PYG_evCh.data.datasets[2].data = ml.map(m=>m.mb);
+  PYG_evCh.data.datasets[3].data = ml.map(m=>m.res);
   // Highlight selected months
   PYG_evCh.data.datasets[0].backgroundColor = PYG_MONTHS.map(m =>
     isAll || PYG_curMes.includes(m) ? 'rgba(122,92,26,0.55)' : 'rgba(122,92,26,0.18)');
   PYG_evCh.data.datasets[1].backgroundColor = PYG_MONTHS.map(m =>
-    isAll || PYG_curMes.includes(m) ? 'rgba(139,43,26,0.45)' : 'rgba(139,43,26,0.15)');
+    isAll || PYG_curMes.includes(m) ? 'rgba(139,43,26,0.40)' : 'rgba(139,43,26,0.13)');
   PYG_evCh.update();
 }
 
@@ -975,56 +944,7 @@ function PYG_renderGastos() {
 }
 
 // ── MARGIN CHART ──
-function PYG_renderMargenes() {
-  const sel = document.getElementById('pyg_margMetric');
-  if(!sel) return;
-  const metric = sel.value;
 
-  const metricFns = {
-    mb:     d => d.ing===0 ? null : d.mb/d.ing*100,
-    gastos: d => d.ing===0 ? null : d.gastos/d.ing*100,
-    res:    d => d.ing===0 ? null : d.res/d.ing*100,
-    neta:   d => d.ing===0 ? null : d.neta/d.ing*100,
-  };
-  const fn = metricFns[metric];
-  const ccs = ['COMUNICACION','ASUNTOS PUBLICOS','TOTAL'];
-  const ccColors = {
-    'COMUNICACION':    {line:'rgba(122,92,26,1)',   fill:'rgba(122,92,26,0.08)'},
-    'ASUNTOS PUBLICOS':{line:'rgba(26,63,107,1)',   fill:'rgba(26,63,107,0.08)'},
-    'TOTAL':           {line:'rgba(26,107,74,1)',   fill:'rgba(26,107,74,0.08)'},
-  };
-  const ccLabel = {'COMUNICACION':'Comunicación','ASUNTOS PUBLICOS':'Asuntos Públicos','TOTAL':'Consolidado'};
-  const labels = PYG_MONTHS.map(m=>PYG_MNS[m]);
-
-  const datasets = ccs.map(cc => ({
-    label: ccLabel[cc],
-    data: PYG_MONTHS.map(m => fn(PYG_getData(m, cc))),
-    borderColor: ccColors[cc].line,
-    backgroundColor: ccColors[cc].fill,
-    borderWidth: 2,
-    pointRadius: 4,
-    pointBackgroundColor: ccColors[cc].line,
-    fill: false,
-    tension: 0.3,
-  }));
-
-  if(PYG_margCh) PYG_margCh.destroy();
-  PYG_margCh = new Chart(document.getElementById('pyg_margChart'), {
-    type:'line',
-    data:{ labels, datasets },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{display:true,position:'top',labels:{font:{family:'DM Mono',size:10},color:PYG_TC,boxWidth:10,padding:16}},
-        tooltip:{callbacks:{label: c => `${c.dataset.label}: ${c.raw===null?'—':c.raw.toFixed(1).replace('.',',')+'\u202f%'}`}}
-      },
-      scales:{
-        x:{ticks:{color:PYG_TC,font:{size:10,family:'DM Mono'}},grid:{display:false}},
-        y:{ticks:{color:PYG_TC,font:{size:9,family:'DM Mono'},callback:v=>v.toFixed(0)+'\u202f%'},grid:{color:PYG_GC},border:{display:false}}
-      }
-    }
-  });
-}
 
 // ── CHECKBOX MONTH DROPDOWN ──
 function toggleMesDrop(prefix) {
@@ -1156,6 +1076,22 @@ function PYG_setDetSelect(val) {
   PYG_render();
 }
 
+function PYG_setCCChip(val, btn) {
+  document.querySelectorAll('.pyg-cc').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Reset tipo to Todo when changing group
+  document.querySelectorAll('.pyg-tipo').forEach(b => b.classList.remove('active'));
+  document.querySelector('.pyg-tipo').classList.add('active');
+
+  PYG_setCCSelect(val);
+}
+
+function PYG_setTipoChip(val, btn) {
+  document.querySelectorAll('.pyg-tipo').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  PYG_setTipoSelect(val);
+}
+
 function PYG_updateBadge() {
   const badge = document.getElementById('pyg_badge');
   if(!badge) return;
@@ -1173,8 +1109,6 @@ function PYG_render() {
   PYG_updateBadge();
   PYG_renderSummary();
   PYG_renderPyG();
-  PYG_renderGastos();
-  PYG_renderMargenes();
 }
 
 // Lazy-init on tab click
@@ -1185,7 +1119,7 @@ function PYG_render() {
 <div id="tab-bvr" class="tab-content">
 
   <!-- Filter bar -->
-  <div id="bvr-filter-bar" style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 32px 12px;margin:-28px -32px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+  <div id="bvr-filter-bar" style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 32px 12px;margin:-28px -32px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:100">
     <span style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);font-family:'DM Mono',monospace;min-width:60px">Vista</span>
     <button class="chip bvr-cc active" onclick="BVR_setCC('TOTAL',this)">Consolidado</button>
     <button class="chip bvr-cc comm" onclick="BVR_setCC('COMUNICACION',this)">Comunicación</button>
@@ -1768,7 +1702,7 @@ function BVR_init() {
       <button class="chip fac-tipo active" onclick="FAC_setTipo('TODOS',this)">Todo</button>
       <button class="chip fac-tipo" id="fac_tipoFijo" onclick="FAC_setTipo('fija',this)">Fijo</button>
       <button class="chip fac-tipo" id="fac_tipoEsp" onclick="FAC_setTipo('especial',this)">Proyectos esp.</button>
-      <button class="chip fac-tipo" id="fac_tipoFid" onclick="FAC_setTipo('fiduciario',this)" style="display:none">Enc. Fiduciario</button>
+      <button class="chip fac-tipo" id="fac_tipoFid" onclick="FAC_setTipo('fiduciario',this)">Enc. Fiduciario</button>
     </div>
     <div style="width:1px;height:16px;background:var(--border);margin:0 6px"></div>
     <div class="mes-dropdown" id="fac_mesDrop">
@@ -1978,9 +1912,7 @@ function FAC_setCC(cc, btn) {
   FAC_curTipo = 'TODOS';
   document.querySelectorAll('.fac-tipo').forEach(b => b.classList.remove('active'));
   document.querySelector('.fac-tipo').classList.add('active');
-  // Show/hide Fiduciario chip (A13 only exists in AAPP)
-  const fidBtn = document.getElementById('fac_tipoFid');
-  if (fidBtn) fidBtn.style.display = (cc === 'ASUNTOS PUBLICOS' || cc === 'TOTAL') ? '' : 'none';
+
   FAC_render();
 }
 
@@ -2099,6 +2031,10 @@ function doLogout() {
 
 // Check on load
 checkSession();
+// Pre-init PyG since it's the first tab
+setTimeout(function(){
+  if(!window._pygInited){ PYG_initCharts(); PYG_render(); window._pygInited=true; }
+}, 100);
 </script>
 
 </body>
