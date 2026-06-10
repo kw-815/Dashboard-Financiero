@@ -645,22 +645,38 @@ function PYG_aggregate(rows) {
 }
 
 function PYG_calcTax(mes, cc) {
-  if (cc !== 'TOTAL') return 0;
   // Normalize mes to array
   const isAll = mes === 0 || (Array.isArray(mes) && mes.includes(0)) || (Array.isArray(mes) && mes.length === 0);
   const actualAnnual = PYG_TAX_ACTUAL[PYG_curYear];
-  if (actualAnnual !== null && actualAnnual !== undefined) {
-    if (isAll) return actualAnnual;
-    const mArr = Array.isArray(mes) ? mes : [mes];
-    const annualRes = PYG_ALL_RAW[PYG_curYear].reduce((a,r)=>a+r.res,0);
-    const periodRes = mArr.reduce((sum,m) => sum + PYG_getRows(m,'TOTAL').reduce((a,r)=>a+r.res,0), 0);
-    if (annualRes === 0) return 0;
-    return Math.max(0, Math.round(actualAnnual * (periodRes / annualRes) * 100) / 100);
+
+  // Helper: get consolidated tax for a given period (ignoring CC filter)
+  function consolidatedTax() {
+    if (actualAnnual !== null && actualAnnual !== undefined) {
+      if (isAll) return actualAnnual;
+      const mArr = Array.isArray(mes) ? mes : [mes];
+      const annualRes = PYG_ALL_RAW[PYG_curYear].reduce((a,r)=>a+r.res,0);
+      const periodRes = mArr.reduce((sum,m) => sum + PYG_getRows(m,'TOTAL').reduce((a,r)=>a+r.res,0), 0);
+      if (annualRes === 0) return 0;
+      return Math.max(0, Math.round(actualAnnual * (periodRes / annualRes) * 100) / 100);
+    }
+    // Open year: estimate 33.34% on positive consolidated result
+    const rows = isAll ? PYG_getRows(0,'TOTAL') : (Array.isArray(mes)?mes:[mes]).flatMap(m=>PYG_getRows(m,'TOTAL'));
+    const totalRes = rows.reduce((a,r)=>a+r.res,0);
+    return totalRes > 0 ? Math.round(totalRes * PYG_TAX * 100) / 100 : 0;
   }
-  // Open year: estimate 33.34% on positive consolidated result
-  const rows = isAll ? PYG_getRows(0,'TOTAL') : (Array.isArray(mes)?mes:[mes]).flatMap(m=>PYG_getRows(m,'TOTAL'));
-  const totalRes = rows.reduce((a,r)=>a+r.res,0);
-  return totalRes > 0 ? Math.round(totalRes * PYG_TAX * 100) / 100 : 0;
+
+  if (cc === 'TOTAL') return consolidatedTax();
+
+  // Proportional tax for CC/grupo filters:
+  // tax_cc = tax_total × (res_cc / res_total_consolidated)
+  // If res_cc <= 0, tax contribution is 0 (can't have negative tax allocation)
+  const taxTotal = consolidatedTax();
+  if (taxTotal === 0) return 0;
+  const mArr = isAll ? [0] : (Array.isArray(mes) ? mes : [mes]);
+  const resCC = mArr.reduce((sum,m) => sum + PYG_getRows(m, cc).reduce((a,r)=>a+r.res,0), 0);
+  const resTotal = mArr.reduce((sum,m) => sum + PYG_getRows(m,'TOTAL').reduce((a,r)=>a+r.res,0), 0);
+  if (resTotal === 0 || resCC <= 0) return 0;
+  return Math.max(0, Math.round(taxTotal * (resCC / resTotal) * 100) / 100);
 }
 
 function PYG_getData(mes, cc) {
@@ -844,10 +860,8 @@ function PYG_renderSummary() {
     { label:'Utilidad antes de impuestos', val:d.res, pct:PYG_pctFmt(d.res,d.ing), color:d.res>=0?'var(--green)':'var(--red)', indent:false, bold:true, divider:true, showBar:false },
   ];
 
-  if(isTotal) {
-    rows.push({ label:'(−) Part. trabajadores e IR (33,34%)', val:-d.imp, pct:null, color:'var(--red)', indent:true, bold:false, showBar:false });
-    rows.push({ label:'Utilidad neta', val:d.neta, pct:PYG_pctFmt(d.neta,d.ing), color:d.neta>=0?'var(--green)':'var(--red)', indent:false, bold:true, divider:true, big:true, showBar:false });
-  }
+  rows.push({ label:'(−) Part. trabajadores e IR (33,34%)', val:-d.imp, pct:null, color:'var(--red)', indent:true, bold:false, showBar:false, dash: d.imp===0 });
+  rows.push({ label:'Utilidad neta', val:d.neta, pct:PYG_pctFmt(d.neta,d.ing), color:d.neta>=0?'var(--green)':'var(--red)', indent:false, bold:true, divider:true, big:true, showBar:false });
 
   let html = '';
   rows.forEach(r => {
