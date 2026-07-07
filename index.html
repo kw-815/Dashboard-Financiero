@@ -2122,6 +2122,9 @@ setTimeout(function(){
 #tab-proj table.items input.mes-inp:hover{background:var(--surface2)}
 #tab-proj table.items input.mes-inp:focus{background:#fff;border-color:var(--navy)}
 #tab-proj table.items input.mes-inp.disabled{color:#c5cbd6;pointer-events:none;background:#fafbfc}
+#tab-proj table.items select.cc-sel{width:100%;border:1px solid transparent;background:transparent;padding:6px 6px;font-family:inherit;font-size:11.5px;color:var(--text-2);border-radius:6px;outline:none;cursor:pointer;transition:border-color .12s,background .12s}
+#tab-proj table.items select.cc-sel:hover{background:var(--surface2)}
+#tab-proj table.items select.cc-sel:focus{background:#fff;border-color:var(--navy)}
 #tab-proj table.items .row-tot{font-weight:600;color:var(--navy);text-align:right;padding-right:8px;font-size:12px;white-space:nowrap}
 #tab-proj table.items button.del-row{background:none;border:none;color:var(--text-3);cursor:pointer;padding:4px 6px;border-radius:5px;font-size:14px;line-height:1}
 #tab-proj table.items button.del-row:hover{background:#fef2f0;color:#b23218}
@@ -2138,6 +2141,9 @@ setTimeout(function(){
 #tab-proj table.comp td:first-child{text-align:left;padding-left:0;color:var(--text-2);font-size:12.5px}
 #tab-proj table.comp tr.hl td{font-weight:600;color:var(--navy);background:#f7f9fc}
 #tab-proj table.comp tr:last-child td{border-bottom:none}
+#tab-proj .comp-block-title{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-top:22px;margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid var(--navy)}
+#tab-proj .comp-block-title:first-child{margin-top:0}
+#tab-proj #projCompContainer > div.comp-block-title:first-of-type{margin-top:4px}
 #tab-proj .neg{color:#b23218}
 #tab-proj .pos{color:#067647}
 #tab-proj .save-status{font-size:11px;color:var(--text-3);margin-left:10px}
@@ -2220,6 +2226,7 @@ setTimeout(function(){
       </div>
     </div>
     <table class="comp" id="projCompTable"></table>
+    <div id="projCompContainer"></div>
   </div>
 
   <!-- Modal copiar -->
@@ -2358,15 +2365,15 @@ function PROJ_projSumTot(items){
   return s;
 }
 
-// Suma de la parte "fija" del último mes real (ingresos, costos+gastos).
-// Se usa como baseline "run-rate" para los meses futuros sin escenario específico.
-function PROJ_lastFijaBaseline(){
+// Suma de la parte "fija" del último mes real, opcionalmente filtrada por grupo
+function PROJ_lastFijaBaseline(filterGrupo){
   const lastReal = PROJ_lastRealMonth();
   if(!lastReal) return {ing:0, cg:0};
   const raw = (typeof PYG_ALL_RAW !== 'undefined' && PYG_ALL_RAW[PROJ_YEAR]) || [];
   let ing = 0, cg = 0;
   raw.forEach(r => {
     if(r.month === lastReal && r.tipo_neg === 'fija'){
+      if(filterGrupo && r.grupo !== filterGrupo) return;
       ing += (r.ing||0);
       cg  += (r.costo||0) + (r.gastos||0);
     }
@@ -2374,14 +2381,31 @@ function PROJ_lastFijaBaseline(){
   return {ing, cg};
 }
 
-// Construye EDR full-year:
-//  - meses <= lastReal: usa data real + items proyectados
-//  - meses > lastReal: usa la parte "fija" del último mes real (run-rate baseline) + items
-function PROJ_edrByMonth(){
-  const ytd = PROJ_ytdReal();
+// YTD real opcionalmente filtrado por grupo
+function PROJ_ytdRealByGrupo(filterGrupo){
+  const out = {};
+  const meses = (typeof PYG_MONTHS_BY_YEAR !== 'undefined' && PYG_MONTHS_BY_YEAR[PROJ_YEAR]) || [];
+  const raw = (typeof PYG_ALL_RAW !== 'undefined' && PYG_ALL_RAW[PROJ_YEAR]) || [];
+  meses.forEach(m => out[m] = {ing:0, costo:0, gastos:0});
+  raw.forEach(r => {
+    if(!out[r.month]) return;
+    if(filterGrupo && r.grupo !== filterGrupo) return;
+    out[r.month].ing += (r.ing||0);
+    out[r.month].costo += (r.costo||0);
+    out[r.month].gastos += (r.gastos||0);
+  });
+  return out;
+}
+
+// EDR filtrable por grupo. Si filterGrupo se pasa, filtra real+baseline+items por CC.
+function PROJ_edrByMonth(filterGrupo){
+  const ytd = filterGrupo ? PROJ_ytdRealByGrupo(filterGrupo) : PROJ_ytdReal();
   const lastReal = PROJ_lastRealMonth();
-  const baseline = PROJ_lastFijaBaseline();
+  const baseline = PROJ_lastFijaBaseline(filterGrupo);
   const curr = PROJ_curr();
+  const matchItem = it => !filterGrupo || (it.cc || 'COMUNICACION') === filterGrupo;
+  const ingItems = curr.ingresos.filter(matchItem);
+  const gasItems = curr.gastos.filter(matchItem);
   const rows = {};
   for(let m=1;m<=12;m++){
     let baseIng, baseCg, kind;
@@ -2394,8 +2418,8 @@ function PROJ_edrByMonth(){
       baseCg  = baseline.cg;
       kind = 'runrate';
     }
-    const projIng = PROJ_projSumMes(curr.ingresos, m);
-    const projCg  = PROJ_projSumMes(curr.gastos, m);
+    const projIng = PROJ_projSumMes(ingItems, m);
+    const projCg  = PROJ_projSumMes(gasItems, m);
     const ing = baseIng + projIng;
     const cg  = baseCg + projCg;
     const uai = ing - cg;
@@ -2466,7 +2490,7 @@ function PROJ_renderItems(kind){
   const items = curr[kind];
   const lastReal = PROJ_lastRealMonth();
 
-  let h = '<thead><tr><th>Descripción</th>';
+  let h = '<thead><tr><th>Descripción</th><th style="width:110px">Centro</th>';
   for(let m=1;m<=12;m++){
     h += `<th>${PROJ_MNS[m]}</th>`;
   }
@@ -2474,10 +2498,15 @@ function PROJ_renderItems(kind){
 
   let b = '<tbody>';
   if(items.length === 0){
-    b += `<tr><td colspan="15" style="text-align:center;color:var(--text-3);padding:20px;font-size:12px;font-style:italic">Sin filas. Click en <b>+ Agregar</b> para empezar.</td></tr>`;
+    b += `<tr><td colspan="16" style="text-align:center;color:var(--text-3);padding:20px;font-size:12px;font-style:italic">Sin filas. Click en <b>+ Agregar</b> para empezar.</td></tr>`;
   } else {
     items.forEach((row, idx) => {
+      const cc = row.cc || 'COMUNICACION';
       b += `<tr><td><input class="desc-inp" type="text" placeholder="Ej: Nuevo cliente ACME" value="${PROJ_esc(row.desc||'')}" oninput="PROJ_updDesc('${kind}',${idx},this.value)"></td>`;
+      b += `<td><select class="cc-sel" onchange="PROJ_updCc('${kind}',${idx},this.value)">
+              <option value="COMUNICACION"${cc==='COMUNICACION'?' selected':''}>Comunicación</option>
+              <option value="ASUNTOS PUBLICOS"${cc==='ASUNTOS PUBLICOS'?' selected':''}>Asuntos Públicos</option>
+            </select></td>`;
       let rowTot = 0;
       for(let m=1;m<=12;m++){
         const v = PROJ_projRow(row, m);
@@ -2488,7 +2517,7 @@ function PROJ_renderItems(kind){
       b += `<td><button class="del-row" onclick="PROJ_delRow('${kind}',${idx})" title="Eliminar fila">×</button></td></tr>`;
     });
     // fila de totales
-    b += '<tr class="tot-row"><td>Total mensual</td>';
+    b += '<tr class="tot-row"><td colspan="2">Total mensual</td>';
     let gTot = 0;
     for(let m=1;m<=12;m++){
       const v = PROJ_projSumMes(items, m);
@@ -2547,9 +2576,15 @@ function PROJ_updateItemsTotals(kind){
   });
 }
 function PROJ_addRow(kind){
-  PROJ_curr()[kind].push({desc:'', meses:{}});
+  PROJ_curr()[kind].push({desc:'', cc:'COMUNICACION', meses:{}});
   PROJ_markDirty();
   PROJ_renderItems(kind);
+}
+function PROJ_updCc(kind, idx, val){
+  PROJ_curr()[kind][idx].cc = val;
+  PROJ_markDirty();
+  PROJ_renderEdr();
+  PROJ_renderComp();
 }
 function PROJ_delRow(kind, idx){
   PROJ_curr()[kind].splice(idx, 1);
@@ -2598,10 +2633,10 @@ function PROJ_doCopy(src){
 }
 
 // ── Comparativo ──────────────────────────────────────────────────
-function PROJ_scenarioTotals(esc){
+function PROJ_scenarioTotals(esc, filterGrupo){
   const save = PROJ_STATE.current;
   PROJ_STATE.current = esc;
-  const edr = PROJ_edrByMonth();
+  const edr = PROJ_edrByMonth(filterGrupo);
   PROJ_STATE.current = save;
   let ing=0, cg=0, uai=0, tax=0, neta=0;
   for(let m=1;m<=12;m++){
@@ -2609,11 +2644,10 @@ function PROJ_scenarioTotals(esc){
   }
   return {ing, cg, uai, tax, neta, margen: ing>0 ? neta/ing : 0};
 }
-function PROJ_renderComp(){
-  const t = document.getElementById('projCompTable');
-  const b = PROJ_scenarioTotals('base');
-  const o = PROJ_scenarioTotals('optimista');
-  const p = PROJ_scenarioTotals('pesimista');
+function PROJ_compBlock(titulo, filterGrupo){
+  const b = PROJ_scenarioTotals('base', filterGrupo);
+  const o = PROJ_scenarioTotals('optimista', filterGrupo);
+  const p = PROJ_scenarioTotals('pesimista', filterGrupo);
   const filas = [
     ['Ingresos anuales proyectados', b.ing, o.ing, p.ing, 'money'],
     ['Costos y gastos anuales', b.cg, o.cg, p.cg, 'money'],
@@ -2622,7 +2656,8 @@ function PROJ_renderComp(){
     ['Utilidad neta', b.neta, o.neta, p.neta, 'money-hl'],
     ['Margen neto', b.margen, o.margen, p.margen, 'pct'],
   ];
-  let h = '<thead><tr><th></th><th>Base</th><th>Optimista</th><th>Pesimista</th></tr></thead><tbody>';
+  let h = `<div class="comp-block-title">${titulo}</div>`;
+  h += '<table class="comp"><thead><tr><th></th><th>Base</th><th>Optimista</th><th>Pesimista</th></tr></thead><tbody>';
   filas.forEach(f => {
     const cls = f[4].endsWith('hl') ? ' class="hl"' : '';
     h += `<tr${cls}><td>${f[0]}</td>`;
@@ -2638,8 +2673,16 @@ function PROJ_renderComp(){
     });
     h += '</tr>';
   });
-  h += '</tbody>';
-  t.innerHTML = h;
+  h += '</tbody></table>';
+  return h;
+}
+function PROJ_renderComp(){
+  const t = document.getElementById('projCompContainer');
+  document.getElementById('projCompTable').innerHTML = '';
+  t.innerHTML =
+    PROJ_compBlock('Total consolidado', null) +
+    PROJ_compBlock('Comunicación', 'COMUNICACION') +
+    PROJ_compBlock('Asuntos Públicos', 'ASUNTOS PUBLICOS');
 }
 
 // ── Render completo ──────────────────────────────────────────────
