@@ -1,11 +1,149 @@
 {
-  "generado": "2026-07-07T12:00:00",
+  "generado": "2026-07-07T23:28:31.453Z",
   "escenarios": {
     "base": {
       "nombre": "Base",
       "tesis": "",
-      "ingresos": [],
-      "gastos": []
+      "ingresos": [
+        {
+          "desc": "Indrive",
+          "cc": "COMUNICACION",
+          "meses": {
+            "5": 4500,
+            "6": 4500,
+            "7": 4500,
+            "8": 4500,
+            "9": 4500,
+            "10": 4500,
+            "11": 4500,
+            "12": 4500
+          }
+        },
+        {
+          "desc": "Maresa",
+          "cc": "COMUNICACION",
+          "meses": {
+            "5": 1900,
+            "6": 1900,
+            "7": 1900,
+            "8": 1900,
+            "9": 1900,
+            "10": 1900,
+            "11": 1900,
+            "12": 1900
+          }
+        },
+        {
+          "desc": "Maresa",
+          "cc": "ASUNTOS PUBLICOS",
+          "meses": {
+            "5": 1900,
+            "6": 1900,
+            "7": 1900,
+            "8": 1900,
+            "9": 1900,
+            "10": 1900,
+            "11": 1900,
+            "12": 1900
+          }
+        },
+        {
+          "desc": "Cervecería Nacional",
+          "cc": "COMUNICACION",
+          "meses": {
+            "7": 5000,
+            "8": 5000,
+            "9": 5000,
+            "10": 5000,
+            "11": 5000,
+            "12": 5000
+          }
+        },
+        {
+          "desc": "PMI",
+          "cc": "COMUNICACION",
+          "meses": {
+            "6": 2200,
+            "7": 2200,
+            "8": 2200,
+            "9": 2200,
+            "10": 2200,
+            "11": 2200,
+            "12": 2200
+          }
+        },
+        {
+          "desc": "Terpel",
+          "cc": "ASUNTOS PUBLICOS",
+          "meses": {
+            "7": 3500,
+            "8": 3500,
+            "9": 3500,
+            "10": 3500,
+            "11": 3500,
+            "12": 3500
+          }
+        },
+        {
+          "desc": "Diners",
+          "cc": "COMUNICACION",
+          "meses": {
+            "12": 10000
+          }
+        },
+        {
+          "desc": "AON",
+          "cc": "COMUNICACION",
+          "meses": {
+            "12": 4000
+          }
+        },
+        {
+          "desc": "Pfizer",
+          "cc": "COMUNICACION",
+          "meses": {
+            "12": 6000
+          }
+        },
+        {
+          "desc": "Solgold",
+          "cc": "COMUNICACION",
+          "meses": {
+            "7": -10000,
+            "8": -10000,
+            "9": -10000,
+            "10": -10000,
+            "11": -10000,
+            "12": -10000
+          }
+        }
+      ],
+      "gastos": [
+        {
+          "desc": "Ejecutiva Cervecería Nacional",
+          "cc": "COMUNICACION",
+          "meses": {
+            "7": 2000,
+            "8": 2000,
+            "9": 2000,
+            "10": 2000,
+            "11": 2000,
+            "12": 2000
+          }
+        },
+        {
+          "desc": "Creando Talento",
+          "cc": "COMUNICACION",
+          "meses": {
+            "7": -875,
+            "8": -875,
+            "9": -875,
+            "10": -875,
+            "11": -875,
+            "12": -875
+          }
+        }
+      ]
     },
     "optimista": {
       "nombre": "Optimista",

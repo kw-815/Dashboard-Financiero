@@ -1,0 +1,21 @@
+# Secretos y credenciales
+.env
+.env.local
+*.pem
+*.key
+
+# Datos fuente (no deben estar en el repo público)
+datos/
+*.xls
+*.xlsx
+
+# Backups y basura del sistema
+*.bak
+index.html.bak
+.DS_Store
+~$*
+Thumbs.db
+
+# Cache
+__pycache__/
+*.pyc
