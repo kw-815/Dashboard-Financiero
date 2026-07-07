@@ -1,0 +1,23 @@
+{
+  "generado": "2026-07-07T12:00:00",
+  "escenarios": {
+    "base": {
+      "nombre": "Base",
+      "tesis": "",
+      "ingresos": [],
+      "gastos": []
+    },
+    "optimista": {
+      "nombre": "Optimista",
+      "tesis": "",
+      "ingresos": [],
+      "gastos": []
+    },
+    "pesimista": {
+      "nombre": "Pesimista",
+      "tesis": "",
+      "ingresos": [],
+      "gastos": []
+    }
+  }
+}
