@@ -13,6 +13,9 @@ datos/
 *.xls
 *.xlsx
 
+# Reportes de inteligencia financiera (cifras internas, no público)
+analisis/reportes/
+
 # Backups y basura del sistema
 *.bak
 index.html.bak
