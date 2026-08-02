@@ -393,7 +393,18 @@ CC_GRUPO = {
 }
 CC_TIPO = {'A1':'fija','A2':'fija','A10':'especial','A11':'especial','A13':'especial'}
 VALID_CC = set(CC_GRUPO.keys())
-CC_MAP   = {'A5':'A2'}
+CC_MAP   = {
+    'A5': 'A2',
+    # 'A4': CC real usado para "Bono Incentivo" en nómina (5.2.01.005), activo
+    # desde sep-2025 hasta hoy (2026), nunca dado de alta como CC válido —
+    # se descartaba en silencio. Confirmado con el usuario: pertenece a
+    # Comunicación (A1).
+    'A4': 'A1',
+    # '01': typo puntual de "A1" en la nómina de septiembre 2025 (asiento 124,
+    # Rol de pagos Período 202509). Solo aparece esa vez en todo 2025-2026.
+    # Confirmado con el usuario.
+    '01': 'A1',
+}
 EXCL_ACCTS = {'5.2.07.090','5.2.07.091'}  # Solo impuestos de cierre de año
 EXCL_DESC  = 'CIERRE DE PERIODO'
 NOMBRE_DISPLAY = {
