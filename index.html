@@ -296,13 +296,7 @@ table.marg tr:last-child td{border-bottom:none;font-weight:600;color:var(--text)
         <thead><tr>
           <th>Mes</th><th class="r">Egresos</th>
         </tr></thead>
-        <tbody>
-          <tr><td>Enero</td><td class="r neg">($15,000.00)</td></tr>
-          <tr><td>Febrero</td><td class="r neg">($20,000.00)</td></tr>
-          <tr><td>Abril</td><td class="r neg">($17,007.00)</td></tr>
-          <tr><td>Mayo</td><td class="r neg">($19,000.00)</td></tr>
-          <tr style="font-weight:600"><td>Total</td><td class="r neg">($71,007.00)</td></tr>
-        </tbody>
+        <tbody id="mexicoTbody"></tbody>
       </table>
       <div class="divider"></div>
       <div class="card-title">Flujo por CC</div>
@@ -476,6 +470,15 @@ const MEXICO_DATA=[
   {mes:5,egr:20380.0},
   {mes:6,egr:17000.0}
 ];
+
+const MEXICO_MNL={1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'};
+const mxt=document.getElementById('mexicoTbody');
+let tMX=0;
+MEXICO_DATA.forEach(m=>{
+  mxt.innerHTML+=`<tr><td>${MEXICO_MNL[m.mes]}</td><td class="r neg">(${fmt(m.egr)})</td></tr>`;
+  tMX+=m.egr;
+});
+mxt.innerHTML+=`<tr style="font-weight:600"><td>Total</td><td class="r neg">(${fmt(tMX)})</td></tr>`;
 
 new Chart(document.getElementById('ccChart'),{
   type:'bar',
