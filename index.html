@@ -1749,7 +1749,7 @@ function BVR_init() {
 //  FACTURACIÓN — FAC_ namespace
 // ══════════════════════════════════════════════
 
-const FAC_MN = {1:'Ene',2:'Feb',3:'Mar',4:'Abr'};
+const FAC_MN = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'};
 const FAC_MONTHS = [1, 2, 3, 4, 5, 6];
 
 const FAC_ALL_RAW = {
@@ -1829,7 +1829,10 @@ function FAC_filtered() {
     } else if (FAC_curMes !== 0 && r.mes !== FAC_curMes) return false;
     if (FAC_curCliente && r.cliente !== FAC_curCliente) return false;
     if (FAC_curTipo !== 'TODOS') {
-      if (FAC_curTipo === 'fija'       && r.tipo !== 'fija')       return false;
+      if (FAC_curTipo === 'fija') {
+        const esFija = r.tipo === 'fija' || (r.tipo === undefined && (r.cc === 'A1' || r.cc === 'A2'));
+        if (!esFija) return false;
+      }
       if (FAC_curTipo === 'especial'   && r.cc !== 'A10' && r.cc !== 'A11') return false;
       if (FAC_curTipo === 'fiduciario' && r.cc !== 'A13')           return false;
     }
