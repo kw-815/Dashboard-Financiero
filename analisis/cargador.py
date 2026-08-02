@@ -29,24 +29,6 @@ def _importar_update_dashboard():
     return ud
 
 
-def _completar_xls_faltantes(ud, contenidos):
-    """cargar_local() en update_dashboard.py solo tiene fallback .xls<->.xlsx
-    para BANCOS y FACTURAS. RESULTADOS y FACTURACION no lo tienen, así que si
-    contabilidad dejó el .xls viejo en datos/, cargar_local() lo salta en
-    silencio. abrir_workbook() SÍ sabe convertir .xls->.xlsx en memoria, solo
-    falta que el .xls llegue al dict `contenidos`. Se completa acá, sin tocar
-    update_dashboard.py."""
-    for nombre_xlsx in ('RESULTADOS.xlsx', 'FACTURACION.xlsx'):
-        if nombre_xlsx in contenidos:
-            continue
-        nombre_xls = nombre_xlsx[:-1]  # .xlsx -> .xls
-        path_xls = ud.DATOS_DIR / nombre_xls
-        if path_xls.exists():
-            contenidos[nombre_xls] = path_xls.read_bytes()
-            print(f"    ✓ {nombre_xls} (local, fallback agregado por analisis/cargador.py)")
-    return contenidos
-
-
 def _cargar_pyg_historico(ud):
     """Busca años anteriores en subcarpetas datos/<AAAA>/ (ej. datos/2025/
     RESULTADOS 2025.xls) y los procesa con procesar_pyg(), igual que el año
@@ -88,8 +70,6 @@ def cargar_datos(modo='local', anio=2026):
     contenidos = ud.cargar_sharepoint() if modo == 'sharepoint' else ud.cargar_local()
     if not contenidos:
         raise RuntimeError(f"No se encontraron archivos fuente (modo={modo}).")
-    if modo == 'local':
-        contenidos = _completar_xls_faltantes(ud, contenidos)
 
     pyg_raw = ud.procesar_pyg(contenidos)
     fac_raw = ud.procesar_facturacion(contenidos)

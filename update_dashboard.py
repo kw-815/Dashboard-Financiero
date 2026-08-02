@@ -110,6 +110,11 @@ def cargar_sharepoint() -> dict:
     r = requests.get(f"{GRAPH_BASE}/sites/{site_id}/drives", headers=hdrs)
     r.raise_for_status()
     drives = r.json().get("value", [])
+    if not drives:
+        raise FileNotFoundError(
+            f"No se encontró ninguna biblioteca de documentos en el sitio SharePoint "
+            f"({SHAREPOINT_URL}). Verificá con --debug-sp que el sitio es correcto."
+        )
     drive_id = next(
         (d["id"] for d in drives if d["name"].lower() == nombre_biblioteca.lower()),
         drives[0]["id"]
@@ -122,9 +127,11 @@ def cargar_sharepoint() -> dict:
     r.raise_for_status()
     items = r.json().get("value", [])
 
+    nombres_esperados = {Path(n).stem.upper() for n in ARCHIVOS_REQUERIDOS}
     archivos_excel = [
         a for a in items
         if a["name"].lower().endswith((".xlsx", ".xls"))
+        and Path(a["name"]).stem.upper() in nombres_esperados
     ]
 
     if not archivos_excel:
@@ -171,6 +178,13 @@ def cargar_local() -> dict:
             if path_xls.exists():
                 contenidos['FACTURAS.xls'] = path_xls.read_bytes()
                 print(f"    ✓ FACTURAS.xls (local)")
+                continue
+        # RESULTADOS y FACTURACION también pueden llegar como .xls viejo
+        if not path.exists() and nombre in ('RESULTADOS.xlsx', 'FACTURACION.xlsx'):
+            path_xls = DATOS_DIR / (nombre[:-1])  # .xlsx -> .xls
+            if path_xls.exists():
+                contenidos[path_xls.name] = path_xls.read_bytes()
+                print(f"    ✓ {path_xls.name} (local)")
                 continue
         if path.exists():
             contenidos[nombre] = path.read_bytes()
@@ -433,7 +447,7 @@ def gasto_grupo(nombre):
     if any(x in n for x in [
         'ARRIENDO', 'ALQUILER OFICINA', 'ALQUILER LOCAL',
         'AGUA', 'ENERGIA ELECTRICA', 'LUZ ',
-        'TELEFONO FIJO', 'INTERNET OFICINA',
+        'TELEFONO FIJO', 'INTERNET OFICINA', 'INTERNET',
         'CONDOMINIO', 'EXPENSAS',
         'AIRE ACONDICIONADO', 'ALARMA',
         'DEPRECIACION', 'AMORTIZACION',
@@ -491,7 +505,7 @@ def gasto_grupo(nombre):
         'SEGURO', 'CALIFICACION', 'CERTIFICACION',
         'OUTSOURC', 'TERCERIZA',
         'ADMINISTRACION TECNOLOG', 'SOPORTE TECNICO', 'SOPORTE',
-        'SERVICIO', 'PRESTACION',
+        'SERVICIO', 'SERVICOS', 'PRESTACION',
         # Telecomunicaciones (celulares son servicio, no infraestructura fija)
         'CELULAR', 'TELEFONO MOVIL', 'DATOS MOVILES',
         'INTERNET ', 'BANDA ANCHA',
@@ -530,6 +544,7 @@ def procesar_pyg(contenidos):
     cuenta_actual = None
     nombre_actual = ''
     rows_ok = 0
+    cc_no_reconocido = defaultdict(lambda: {'n': 0, 'monto': 0.0})
 
     for row in all_rows:
         c0 = str(row[0]).strip() if row[0] is not None else ''
@@ -551,24 +566,41 @@ def procesar_pyg(contenidos):
         if cuenta_actual.startswith('4.'):
             # Ingresos: haber - debe
             valor = haber - debe
-            for cc, frac in resolver_cc(row[8], 'ingreso'):
+            splits = resolver_cc(row[8], 'ingreso')
+            if not splits:
+                cc_no_reconocido[str(row[8])]['n'] += 1
+                cc_no_reconocido[str(row[8])]['monto'] += valor
+            for cc, frac in splits:
                 acum[(anio,mes,cc)]['ing'] += valor * frac
                 rows_ok += 1
         elif cuenta_actual.startswith('5.1.'):
             # Costos: debe - haber
             valor = debe - haber
-            for cc, frac in resolver_cc(row[8], 'gasto'):
+            splits = resolver_cc(row[8], 'gasto')
+            if not splits:
+                cc_no_reconocido[str(row[8])]['n'] += 1
+                cc_no_reconocido[str(row[8])]['monto'] += valor
+            for cc, frac in splits:
                 acum[(anio,mes,cc)]['costo'] += valor * frac
                 rows_ok += 1
         elif cuenta_actual.startswith('5.2.'):
             # Gastos: debe - haber
             valor = debe - haber
             grp = gasto_grupo(nombre_actual)
-            for cc, frac in resolver_cc(row[8], 'gasto'):
+            splits = resolver_cc(row[8], 'gasto')
+            if not splits:
+                cc_no_reconocido[str(row[8])]['n'] += 1
+                cc_no_reconocido[str(row[8])]['monto'] += valor
+            for cc, frac in splits:
                 acum[(anio,mes,cc)][grp] += valor * frac
                 rows_ok += 1
 
     print(f"    {rows_ok} movimientos procesados")
+
+    if cc_no_reconocido:
+        print(f"    ⚠️  Centro de Costo no reconocido (excluido del PyG, revisar):")
+        for cc_raw, info in sorted(cc_no_reconocido.items(), key=lambda x: -abs(x[1]['monto'])):
+            print(f"       CC={cc_raw!r}  {info['n']} fila(s)  ${info['monto']:,.2f}")
 
     # ── Audit log: mostrar cuentas que cayeron en 'otros' para revisión ──
     if acum:
@@ -714,6 +746,7 @@ def procesar_facturacion(contenidos):
     acum_reem   = defaultdict(float)   # reembolsos VTA06 (separado)
     sin_emitir  = []   # en FACTURACION pero no en FACTURAS → alerta, NO suma
     rows_ok     = 0
+    cc_no_reconocido = defaultdict(lambda: {'n': 0, 'monto': 0.0})
 
     for row in all_rows:
         if row[0] != '001' or not isinstance(row[3], datetime.datetime):
@@ -725,6 +758,8 @@ def procesar_facturacion(contenidos):
         # DVT05: monto en col[9]; VTA05: monto en col[10]
         importe = safe_float(row[9]) if tipo == 'DVT05' else safe_float(row[10])
         if cc_orig not in VALID_CC and cc_orig not in CC_MAP:
+            cc_no_reconocido[cc_orig]['n'] += 1
+            cc_no_reconocido[cc_orig]['monto'] += importe
             continue
         cc_orig = CC_MAP.get(cc_orig, cc_orig)
         if cc_orig not in VALID_CC:
@@ -764,8 +799,6 @@ def procesar_facturacion(contenidos):
                 fc_nros.add(n)
 
     solo_en_facturas = 0
-    for _, r in enumerate(fact_nros_vta):
-        pass  # placeholder — built below
 
     # Recorrer FACTURAS para filas VTA05/DVT05 que no están en FACTURACION
     def _acum_solo_facturas(rows_iter):
@@ -824,6 +857,10 @@ def procesar_facturacion(contenidos):
         for s in sin_emitir:
             print(f"       nro={s['nro']}  tipo={s['tipo']}  cc={s['cc']}  "
                   f"importe={s['importe']:,.2f}  {s['anio']}-{s['mes']:02d}")
+    if cc_no_reconocido:
+        print(f"    ⚠️  Centro de Costo no reconocido (excluido de Facturación, revisar):")
+        for cc_raw, info in sorted(cc_no_reconocido.items(), key=lambda x: -abs(x[1]['monto'])):
+            print(f"       CC={cc_raw!r}  {info['n']} fila(s)  ${info['monto']:,.2f}")
 
     resultado = defaultdict(list)
     # Facturación normal
@@ -1053,9 +1090,25 @@ def actualizar_html(pyg_data, fac_data, cxc_data, saldo_data, monthly, mexico):
     if fac_2025_str != '[]':
         print(f"    ℹ️  Preservando datos FAC 2025 hardcodeados ({len(json.loads(fac_2025_str))} registros)")
 
+    # ── Guardia: si no se pudo extraer 2025 del HTML existente, abortar en vez
+    # de publicar con el año vacío. El backup .bak ya se escribió arriba, y
+    # como la escritura real a INDEX_PATH ocurre al final de esta función,
+    # abortar acá no corrompe nada — solo detiene el proceso con un error claro.
+    if pyg_2025_str == '[]' or fac_2025_str == '[]':
+        raise RuntimeError(
+            "No se pudieron extraer los datos 2025 del index.html existente "
+            "(PYG_ALL_RAW o FAC_ALL_RAW). Abortando para no sobreescribir 2025 con "
+            "un array vacío. Revisar index.html.bak y el formato del bloque '2025:'."
+        )
+
     def rep(pat, nuevo, flags=0):
         nonlocal html
-        html = re.sub(pat, lambda m: nuevo, html, flags=flags)
+        html, count = re.subn(pat, lambda m: nuevo, html, flags=flags)
+        if count == 0:
+            raise RuntimeError(
+                f"No se encontró el patrón esperado en index.html, abortando sin escribir "
+                f"(nada se sobreescribió): {pat}"
+            )
 
     rep(r'const PYG_ALL_RAW = \{.*?\};',
         'const PYG_ALL_RAW = {\n'
@@ -1075,9 +1128,13 @@ def actualizar_html(pyg_data, fac_data, cxc_data, saldo_data, monthly, mexico):
     rep(r'const FAC_MONTHS = \[.*?\];', f'const FAC_MONTHS = {json.dumps(fac_meses)};')
     rep(r'const BVR_REAL_MONTHS = \[.*?\];', f'const BVR_REAL_MONTHS = {json.dumps(meses_2026)};')
 
-    sin_emitir_str = json.dumps(sin_emitir, ensure_ascii=False, default=str)
-    rep(r'const FAC_SIN_EMITIR = \[.*?\];',
-        f'const FAC_SIN_EMITIR = {sin_emitir_str};', re.DOTALL)
+    # NOTA: `sin_emitir` (facturas en FACTURACION sin respaldo en FACTURAS) se
+    # imprime en consola desde procesar_facturacion(). No existe un
+    # `FAC_SIN_EMITIR` en index.html (nunca se construyó esa parte visual) —
+    # antes había un rep() que intentaba escribirlo y fallaba en silencio en
+    # cada corrida sin que nadie lo notara. Se removió; si en el futuro se
+    # quiere mostrar en el dashboard, hay que agregar el const en index.html
+    # primero y luego el rep() acá.
 
     rep(r'const CXC=\[.*?\];',
         f'const CXC={json.dumps(cxc_data,ensure_ascii=False)};', re.DOTALL)
@@ -1091,6 +1148,10 @@ def actualizar_html(pyg_data, fac_data, cxc_data, saldo_data, monthly, mexico):
     monthly_str = 'const MONTHLY=[\n' + ',\n'.join(
         f'  {{month:{r["month"]},ing:{r["ing"]},egr:{r["egr"]}}}' for r in monthly) + '\n];'
     rep(r'const MONTHLY=\[.*?\];', monthly_str, re.DOTALL)
+
+    mexico_str = 'const MEXICO_DATA=[\n' + ',\n'.join(
+        f'  {{mes:{r["mes"]},egr:{r["egr"]}}}' for r in mexico) + '\n];'
+    rep(r'const MEXICO_DATA=\[.*?\];', mexico_str, re.DOTALL)
 
     # ── Actualizar panel estático de Flujo de Caja (SI / SF / Variación / Fecha) ──
     if saldo_data and monthly:
@@ -1380,11 +1441,12 @@ def main():
     actualizar_html(pyg_data, fac_data, cxc_data, saldo_data, monthly, mexico)
 
     imprimir_resumen(pyg_data, fac_data, cxc_data, saldo_data, monthly, mexico)
-    print("\n✅ Listo. Abre index.html en tu navegador para verificar.\n")
 
     # ── Publicar en GitHub automáticamente
     if not ARGS.local:
         publicar_github()
+
+    print("\n✅ Listo. Abre index.html en tu navegador para verificar.\n")
 
 
 if __name__ == '__main__':
