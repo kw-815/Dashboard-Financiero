@@ -4,6 +4,10 @@
 *.pem
 *.key
 
+# Contexto interno (infraestructura + cifras internas, no debe ser público)
+CLAUDE.md
+DASHBOARD_KEYWORD_CONTEXTO*.md
+
 # Datos fuente (no deben estar en el repo público)
 datos/
 *.xls
