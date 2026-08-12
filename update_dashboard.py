@@ -405,6 +405,11 @@ CC_MAP   = {
     # Confirmado con el usuario.
     '01': 'A1',
 }
+# CC combinados que contabilidad escribe a mano en FACTURACION (en vez de partir
+# la fila en dos con su A1/A2 real) → se fuerza split usando el % de ASIGNACIONES
+# del cliente si existe, o 50/50 si el cliente no tiene % definido. Confirmado con
+# el usuario 2026-08-08 (facturas 5776 AIBE y 5929 MARESA, CC='A1 Y A2').
+CC_SPLIT_MANUAL = {'A1 Y A2'}
 EXCL_ACCTS = {'5.2.07.090','5.2.07.091'}  # Solo impuestos de cierre de año
 EXCL_DESC  = 'CIERRE DE PERIODO'
 NOMBRE_DISPLAY = {
@@ -768,13 +773,17 @@ def procesar_facturacion(contenidos):
         cc_orig = str(row[8]).strip() if row[8] else ''
         # DVT05: monto en col[9]; VTA05: monto en col[10]
         importe = safe_float(row[9]) if tipo == 'DVT05' else safe_float(row[10])
-        if cc_orig not in VALID_CC and cc_orig not in CC_MAP:
+        # CC combinado escrito a mano por contabilidad (ej. 'A1 Y A2') → forzar split,
+        # igual que un A1/A2 normal con % de ASIGNACIONES (o 50/50 si el cliente no tiene % definido)
+        cc_split_manual = cc_orig in CC_SPLIT_MANUAL
+        if not cc_split_manual and cc_orig not in VALID_CC and cc_orig not in CC_MAP:
             cc_no_reconocido[cc_orig]['n'] += 1
             cc_no_reconocido[cc_orig]['monto'] += importe
             continue
-        cc_orig = CC_MAP.get(cc_orig, cc_orig)
-        if cc_orig not in VALID_CC:
-            continue
+        if not cc_split_manual:
+            cc_orig = CC_MAP.get(cc_orig, cc_orig)
+            if cc_orig not in VALID_CC:
+                continue
         if nro_int is None:
             continue
         mes, anio = fecha.month, fecha.year
@@ -790,8 +799,14 @@ def procesar_facturacion(contenidos):
         cliente  = cruce.get(nro_int, f'DESCONOCIDO-{nro_int}')
         pct_asig = asig.get(cliente, {})
 
+        if cc_split_manual:
+            split = pct_asig if pct_asig else {'A1': 0.5, 'A2': 0.5}
+            for cc, pct in split.items():
+                imp = (importe * -1 * pct) if tipo == 'DVT05' else pct * importe
+                acum[(anio, mes, cliente, cc)] += imp
+                rows_ok += 1
         # Split SOLO A1/A2 — A10/A11/A13 son proyectos especiales, nunca se dividen
-        if pct_asig and cc_orig in ('A1', 'A2'):
+        elif pct_asig and cc_orig in ('A1', 'A2'):
             for cc, pct in pct_asig.items():
                 imp = (importe * -1 * pct) if tipo == 'DVT05' else pct * importe
                 acum[(anio, mes, cliente, cc)] += imp
