@@ -923,38 +923,53 @@ def procesar_facturacion(contenidos):
 # 3. CxC
 # ══════════════════════════════════════════════════════════════════════════════
 def procesar_cxc(contenidos):
+    """Lee CXC.xlsx/.xls — reporte 'estado de cuenta por cliente' agrupado
+    (formato adoptado por contabilidad desde 2026-08-13, reemplaza el listado
+    plano anterior). Columnas: LOC | TIPO | NUM | VEN | F.FACT | F.PAGO | DIAS
+    | DEBITO | CREDITO | SALDO.
+
+    El archivo intercala 3 tipos de fila sin ninguna marca explícita:
+      - fila de cliente:   LOC empieza con 'C' (código cliente), TIPO=nombre, resto vacío
+      - fila de factura:   LOC=='001' literal, F.FACT es fecha
+      - fila de subtotal / vendedor / total general: no matchea ninguna de las
+        dos anteriores (LOC es número, o '01', o vacío) → se ignora sola.
+    'valor' usa SALDO (pendiente tras notas de crédito), no DEBITO (importe
+    original) — es lo que consumen el total de CxC y el chequeo de vencidas.
+    """
     print("  Leyendo CXC.xlsx ...")
     wb = abrir_workbook(contenidos, 'CXC.xlsx')
     ws = wb.active
     registros = []
-    texto_convertidos = 0
     today = datetime.date.today()
+    cliente_actual = None
     for row in ws.iter_rows(min_row=2, values_only=True):
-        nro, fem, fven, cliente, valor = row[2], row[3], row[4], row[6], row[7]
-        if not nro or not isinstance(fem, datetime.datetime): continue
-        if valor is None: continue
-        if not isinstance(valor, (int, float)):
-            valor = safe_float(valor)
-            if valor == 0.0: continue
-            texto_convertidos += 1
-        fem_d  = fem.date()
-        fven_d = fven.date() if isinstance(fven, datetime.datetime) else None
-        estado = 'Vencida' if fven_d and fven_d < today else 'Futura'
-        registros.append({
-            'no': str(nro),
-            'fem': fem_d.strftime('%d/%m/%Y'),
-            'fven': fven_d.strftime('%d/%m/%Y') if fven_d else '',
-            'fem_iso': fem_d.isoformat(),
-            'fven_iso': fven_d.isoformat() if fven_d else '',
-            'cliente': str(cliente).strip() if cliente else '',
-            'valor': round(float(valor),2),
-            'estado': estado,
-            'mes_emision': fem_d.month,
-            'mes_vencimiento': fven_d.month if fven_d else 0,
-        })
+        row = (list(row) + [None] * 10)[:10]
+        loc, tipo, num, ven, ffact, fpago, dias, debito, credito, saldo = row
+
+        if isinstance(loc, str) and loc.strip().startswith('C') and isinstance(tipo, str) and not isinstance(ffact, datetime.datetime):
+            cliente_actual = tipo.strip()
+            continue
+
+        if loc == '001' and isinstance(ffact, datetime.datetime) and num:
+            fem_d  = ffact.date()
+            fven_d = fpago.date() if isinstance(fpago, datetime.datetime) else None
+            valor = saldo if isinstance(saldo, (int, float)) else safe_float(saldo)
+            estado = 'Vencida' if fven_d and fven_d < today else 'Futura'
+            registros.append({
+                'no': str(num),
+                'fem': fem_d.strftime('%d/%m/%Y'),
+                'fven': fven_d.strftime('%d/%m/%Y') if fven_d else '',
+                'fem_iso': fem_d.isoformat(),
+                'fven_iso': fven_d.isoformat() if fven_d else '',
+                'cliente': cliente_actual or '',
+                'valor': round(float(valor), 2),
+                'estado': estado,
+                'mes_emision': fem_d.month,
+                'mes_vencimiento': fven_d.month if fven_d else 0,
+            })
     wb.close()
-    if texto_convertidos:
-        print(f"    ⚠️  {texto_convertidos} importes venían como texto y fueron convertidos — pedir a contabilidad que suba CXC con formato numérico")
+    if not registros:
+        print("    ⚠️  0 registros CxC — el formato del archivo puede haber cambiado de nuevo, revisar estructura de columnas")
     print(f"    {len(registros)} registros CxC")
     return registros
 
