@@ -179,8 +179,8 @@ def cargar_local() -> dict:
                 contenidos['FACTURAS.xls'] = path_xls.read_bytes()
                 print(f"    ✓ FACTURAS.xls (local)")
                 continue
-        # RESULTADOS y FACTURACION también pueden llegar como .xls viejo
-        if not path.exists() and nombre in ('RESULTADOS.xlsx', 'FACTURACION.xlsx'):
+        # RESULTADOS, FACTURACION y CXC también pueden llegar como .xls viejo
+        if not path.exists() and nombre in ('RESULTADOS.xlsx', 'FACTURACION.xlsx', 'CXC.xlsx'):
             path_xls = DATOS_DIR / (nombre[:-1])  # .xlsx -> .xls
             if path_xls.exists():
                 contenidos[path_xls.name] = path_xls.read_bytes()
