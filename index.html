@@ -786,20 +786,26 @@ function PYG_calcTax(mes, cc) {
   const isAll = mes === 0 || (Array.isArray(mes) && mes.includes(0)) || (Array.isArray(mes) && mes.length === 0);
   const actualAnnual = PYG_TAX_ACTUAL[PYG_curYear];
 
-  // Helper: get consolidated tax for a given period (ignoring CC filter)
+  // Helper: get consolidated tax for a given period (ignoring CC filter, pero
+  // SÍ respeta PYG_curTipo/PYG_curDet vía PYG_getRows — ver nota abajo)
   function consolidatedTax() {
+    // mArr=[0] para "Acumulado" — PYG_getRows(0,'TOTAL') ya trae todos los
+    // meses del año respetando el filtro de tipo (Fijo/Especial/Fiduciario)
+    // activo. Antes, el caso "Acumulado" devolvía el impuesto real de TODA
+    // la empresa (actualAnnual) sin prorratear por ese filtro, mientras que
+    // sumar mes a mes sí prorrateaba — de ahí que "Acumulado" y la suma de
+    // los 12 meses no cuadraran al tener un filtro de tipo activo. Ahora
+    // ambos caminos usan la misma fórmula, así que sin filtro (ratio=1)
+    // el resultado es idéntico a antes, y con filtro quedan consistentes.
+    const mArr = isAll ? [0] : (Array.isArray(mes) ? mes : [mes]);
+    const periodRes = mArr.reduce((sum,m) => sum + PYG_getRows(m,'TOTAL').reduce((a,r)=>a+r.res,0), 0);
     if (actualAnnual !== null && actualAnnual !== undefined) {
-      if (isAll) return actualAnnual;
-      const mArr = Array.isArray(mes) ? mes : [mes];
       const annualRes = PYG_ALL_RAW[PYG_curYear].reduce((a,r)=>a+r.res,0);
-      const periodRes = mArr.reduce((sum,m) => sum + PYG_getRows(m,'TOTAL').reduce((a,r)=>a+r.res,0), 0);
       if (annualRes === 0) return 0;
       return Math.max(0, Math.round(actualAnnual * (periodRes / annualRes) * 100) / 100);
     }
     // Open year: estimate 33.34% on positive consolidated result
-    const rows = isAll ? PYG_getRows(0,'TOTAL') : (Array.isArray(mes)?mes:[mes]).flatMap(m=>PYG_getRows(m,'TOTAL'));
-    const totalRes = rows.reduce((a,r)=>a+r.res,0);
-    return totalRes > 0 ? Math.round(totalRes * PYG_TAX * 100) / 100 : 0;
+    return periodRes > 0 ? Math.round(periodRes * PYG_TAX * 100) / 100 : 0;
   }
 
   if (cc === 'TOTAL') return consolidatedTax();
@@ -997,8 +1003,21 @@ function PYG_renderSummary() {
     { label:'Utilidad antes de impuestos', val:d.res, pct:PYG_pctFmt(d.res,d.ing), color:d.res>=0?'var(--green)':'var(--red)', indent:false, bold:true, divider:true, showBar:false },
   ];
 
+  // El impuesto real filed (PYG_TAX_ACTUAL) es un número único de TODA la
+  // empresa. Cualquier vista que no sea el acumulado sin filtros lo prorratea
+  // proporcionalmente — y ese prorrateo no asigna impuesto negativo en
+  // periodos de pérdida, así que sumar meses individuales puede diferir
+  // levemente del acumulado. Avisar solo cuando aplica (año cerrado + vista
+  // filtrada o parcial) para no ensuciar el caso por defecto.
+  const actualAnnual = PYG_TAX_ACTUAL[PYG_curYear];
+  const isFilteredView = PYG_curCC !== 'TOTAL' || PYG_curTipo !== 'todo' || PYG_curDet !== 'todos' || !isAll;
+  const showProrateNote = (actualAnnual !== null && actualAnnual !== undefined) && isFilteredView;
+  const prorateNote = showProrateNote
+    ? ` <span title="Impuesto prorrateado sobre el resultado de esta vista filtrada/parcial, a partir del impuesto real de toda la empresa. Por eso la suma de meses individuales puede diferir levemente del acumulado (no se asigna impuesto negativo en periodos de pérdida)." style="cursor:help;color:var(--text-3);font-weight:400;font-size:11px;border:1px solid var(--border-strong);border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;line-height:1">i</span>`
+    : '';
+
   rows.push({ label:'(−) Part. trabajadores e IR (33,34%)', val:-d.imp, pct:null, color:'var(--red)', indent:true, bold:false, showBar:false, dash: d.imp===0 });
-  rows.push({ label:'Utilidad neta', val:d.neta, pct:PYG_pctFmt(d.neta,d.ing), color:d.neta>=0?'var(--green)':'var(--red)', indent:false, bold:true, divider:true, big:true, showBar:false });
+  rows.push({ label:'Utilidad neta'+prorateNote, val:d.neta, pct:PYG_pctFmt(d.neta,d.ing), color:d.neta>=0?'var(--green)':'var(--red)', indent:false, bold:true, divider:true, big:true, showBar:false });
 
   let html = '';
   rows.forEach(r => {
@@ -1176,9 +1195,15 @@ function PYG_setDetSelect(val) {
 function PYG_setCCChip(val, btn) {
   document.querySelectorAll('.pyg-cc').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  // Reset tipo to Todo when changing group
+  // Reset tipo a "Todo" al cambiar de grupo — visual Y de estado. Antes solo
+  // se reseteaba la clase CSS del chip; PYG_curTipo se quedaba con el valor
+  // anterior (ej. 'fija') aunque el botón mostrara "Todo" activo, así que los
+  // datos no coincidían con el filtro visible hasta el siguiente click en un
+  // chip de tipo.
   document.querySelectorAll('.pyg-tipo').forEach(b => b.classList.remove('active'));
   document.querySelector('.pyg-tipo').classList.add('active');
+  PYG_curTipo = 'todo';
+  PYG_curDet = 'todos';
 
   PYG_setCCSelect(val);
 }
