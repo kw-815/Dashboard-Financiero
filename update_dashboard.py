@@ -922,13 +922,24 @@ def procesar_facturacion(contenidos):
 # ══════════════════════════════════════════════════════════════════════════════
 # 3. CxC
 # ══════════════════════════════════════════════════════════════════════════════
+_CXC_TIPOS = {'VTA05', 'VTA06', 'DVT05', 'DVT06'}
+
+
 def procesar_cxc(contenidos):
-    """Lee CXC.xlsx/.xls — listado plano de facturas pendientes (formato
-    adoptado por contabilidad desde 2026-08-25, reemplaza el reporte 'estado
-    de cuenta por cliente' agrupado de 2026-08-13). Una fila = una factura,
-    sin filas de subtotal/cliente intercaladas. Columnas: col0 (constante,
-    sin usar) | TIPO (VTA05/VTA06) | NO FACT | FECHA FAC | FECHA VENC |
-    CÓD.CLIENTE (sin usar) | CLIENTE | SALDO.
+    """Lee CXC.xlsx/.xls — listado plano de facturas pendientes. Una fila =
+    una factura, sin filas de subtotal/cliente intercaladas.
+
+    Contabilidad ha cambiado esta estructura repetidas veces (ver 'Errores
+    históricos' puntos 36/39 en CLAUDE.md), variando si trae o no una columna
+    inicial sin usar antes de TIPO, y si trae o no fila de encabezado. Para
+    no depender de que el layout exacto se mantenga, cada fila se detecta
+    por su contenido en vez de por índice fijo de columna:
+      - TIPO (VTA05/VTA06/DVT05/DVT06) puede estar en col0 o en col1 —
+        se ubica buscando cuál de las dos trae un valor reconocido.
+      - Filas que no matchean ningún layout (headers, vacías) se ignoran
+        por el mismo filtro de "FECHA FAC es datetime" que ya existía.
+    Columnas relevantes una vez ubicado TIPO: NO FACT | FECHA FAC |
+    FECHA VENC | CÓD.CLIENTE (sin usar) | CLIENTE | SALDO.
     'valor' usa SALDO (pendiente tras notas de crédito), igual que en los
     formatos anteriores.
     """
@@ -937,9 +948,18 @@ def procesar_cxc(contenidos):
     ws = wb.active
     registros = []
     today = datetime.date.today()
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        row = (list(row) + [None] * 8)[:8]
-        _loc, _tipo, num, ffact, fven, _codcli, cliente, saldo = row
+    for row in ws.iter_rows(min_row=1, values_only=True):
+        row = (list(row) + [None] * 9)[:9]
+        c0 = str(row[0]).strip().upper() if row[0] is not None else ''
+        c1 = str(row[1]).strip().upper() if row[1] is not None else ''
+        if c0 in _CXC_TIPOS:
+            # formato sin columna inicial (visto desde 2026-09-03)
+            _tipo, num, ffact, fven, _codcli, cliente, saldo = row[0:7]
+        elif c1 in _CXC_TIPOS:
+            # formato con columna inicial sin usar (visto 2026-08-25 a 2026-09-02)
+            _loc, _tipo, num, ffact, fven, _codcli, cliente, saldo = row[0:8]
+        else:
+            continue  # header, fila vacía, u otro layout no reconocido
 
         if not isinstance(ffact, datetime.datetime) or not num:
             continue
@@ -954,7 +974,7 @@ def procesar_cxc(contenidos):
             'fven': fven_d.strftime('%d/%m/%Y') if fven_d else '',
             'fem_iso': fem_d.isoformat(),
             'fven_iso': fven_d.isoformat() if fven_d else '',
-            'cliente': (cliente or '').strip(),
+            'cliente': str(cliente or '').strip(),
             'valor': round(float(valor), 2),
             'estado': estado,
             'mes_emision': fem_d.month,
