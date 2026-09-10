@@ -22,7 +22,8 @@ SCRYPT_N = 16384
 SCRYPT_R = 8
 SCRYPT_P = 1
 DKLEN = 64
-SESSION_SECONDS = 60 * 60 * 12  # 12 horas
+SESSION_SECONDS = 60 * 60 * 12  # 12 horas (sesión normal)
+SESSION_SECONDS_REMEMBER = 60 * 60 * 24 * 30  # 30 días (con "Recuérdame")
 
 
 def _b64url(data: bytes) -> str:
@@ -62,6 +63,8 @@ class handler(BaseHTTPRequestHandler):
 
         username = str(body.get("username", "")).strip()
         password = str(body.get("password", ""))
+        remember = bool(body.get("remember"))
+        session_seconds = SESSION_SECONDS_REMEMBER if remember else SESSION_SECONDS
 
         users_raw = os.environ.get("AUTH_USERS", "{}")
         secret = os.environ.get("AUTH_JWT_SECRET", "")
@@ -85,7 +88,7 @@ class handler(BaseHTTPRequestHandler):
             "sub": username,
             "role": user.get("role", "user"),
             "iat": now,
-            "exp": now + SESSION_SECONDS,
+            "exp": now + session_seconds,
         }
         token = _sign_jwt(payload, secret)
 
@@ -93,7 +96,7 @@ class handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header(
             "Set-Cookie",
-            f"kw_session={token}; Path=/; Max-Age={SESSION_SECONDS}; HttpOnly; Secure; SameSite=Lax",
+            f"kw_session={token}; Path=/; Max-Age={session_seconds}; HttpOnly; Secure; SameSite=Lax",
         )
         self.end_headers()
         self.wfile.write(json.dumps({"ok": True}).encode())
