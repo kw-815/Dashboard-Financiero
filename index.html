@@ -170,38 +170,6 @@ table.marg td:first-child{text-align:left;font-size:12px;padding-left:0;color:va
 table.marg tr:last-child td{border-bottom:none;font-weight:600;color:var(--text)}
 .marg-note{font-size:10px;color:var(--text-3);margin-top:10px}
 
-/* ── LOGIN split-screen ── */
-.login-overlay{position:fixed;inset:0;z-index:9999;background:#fff;display:flex;padding:0;align-items:stretch}
-.login-overlay.hidden{display:none}
-.login-left{position:relative;flex:1 1 50%;background:var(--navy);color:#fff;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:54px 60px}
-.login-left .lz{position:relative;z-index:2}
-.login-left .kw-logo{padding:0;margin:0}
-.login-left .kw-logo svg{height:30px}
-.login-left .kw-logo svg path{fill:#fff}
-.login-hero h2{font-size:64px;font-weight:800;line-height:1.0;letter-spacing:-2px;margin-bottom:22px}
-.login-hero p{font-size:17px;line-height:1.5;color:rgba(255,255,255,.66);max-width:430px;font-weight:400}
-.login-c1{position:absolute;width:560px;height:560px;border-radius:50%;background:rgba(255,255,255,.035);top:-120px;right:-150px;z-index:1}
-.login-c2{position:absolute;width:720px;height:720px;border-radius:50%;border:1px solid rgba(255,255,255,.05);bottom:-360px;left:-160px;z-index:1}
-.login-dots{position:absolute;right:70px;bottom:70px;z-index:1;display:grid;grid-template-columns:repeat(9,12px);gap:12px;opacity:.5}
-.login-dots span{width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.4)}
-.login-right{flex:1 1 50%;display:flex;align-items:center;justify-content:center;padding:40px}
-.login-box{background:transparent;border:none;box-shadow:none;max-width:380px;width:100%;padding:0}
-.login-title,.login-sub{display:none}
-.login-field{margin-bottom:20px}
-.login-field label{color:var(--text);font-size:14px;font-weight:600;letter-spacing:0;margin-bottom:8px;display:block}
-.login-field input{width:100%;background:var(--surface2);border:1px solid var(--border-strong);color:var(--text);border-radius:11px;padding:15px 16px;font-size:14px;outline:none;transition:border-color .15s}
-.login-field input::placeholder{color:var(--text-3)}
-.login-field input:focus{border-color:#9fbdf2;background:#fff}
-.login-pass-wrap{position:relative}
-.login-pass-wrap .eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text-3);background:none;border:none;display:flex;padding:4px}
-.login-pass-wrap .eye svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.7;fill:none}
-.login-remember{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--text-2);margin-bottom:26px;cursor:pointer;user-select:none}
-.login-remember input{width:16px;height:16px;accent-color:var(--navy);cursor:pointer}
-.login-error{color:var(--red);min-height:18px;margin-bottom:10px;font-size:12.5px}
-.login-btn{width:100%;background:var(--navy);color:#fff;border-radius:11px;padding:15px;font-size:15px;font-weight:600;border:none;cursor:pointer;transition:opacity .15s;margin-top:0}
-.login-btn:hover{opacity:.92}
-
-@media(max-width:860px){.login-left{display:none}.login-right{flex:1 1 100%}}
 @media(max-width:680px){.sidebar{display:none}.page-head,.tab-content{margin-left:0}}
 
 /* ── Menú móvil (drawer) — solo tiene efecto en ≤680px, ver @media abajo ── */
@@ -223,37 +191,6 @@ table.marg tr:last-child td{border-bottom:none;font-weight:600;color:var(--text)
 </style>
 </head>
 <body>
-
-<!-- ── LOGIN (split-screen) ── -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-left">
-    <span class="login-c1"></span><span class="login-c2"></span>
-    <div class="lz kw-logo"><svg viewBox="0 0 383.77 151.93" aria-label="keyword"><path d="M272.42,75.14c1.02-2.6,2.51-4.9,4.41-6.83.48-.49.98-.94,1.51-1.38l.67-2.19h-11.8l-4.18,15.54c-.25.78-.45,1.59-.62,2.42-.17.83-.36,1.61-.55,2.35-.2.88-.39,1.74-.59,2.57h-.15c-.2-.83-.39-1.69-.59-2.57-.2-.73-.39-1.54-.59-2.42-.2-.88-.39-1.73-.59-2.57l-4.11-15.32h-10.12l-3.96,15.32c-.25.83-.47,1.67-.66,2.53-.2.86-.37,1.65-.51,2.38l-.51,2.57h-.15c-.15-.78-.32-1.61-.51-2.49-.15-.73-.33-1.51-.55-2.35-.22-.83-.43-1.64-.62-2.42l-3.6-14.11-6.39,18.73,5.23,17.37h11.07l4.47-17.01c.19-.73.4-1.49.62-2.27s.4-1.51.55-2.2c.19-.78.37-1.54.51-2.27h.15c.15.73.32,1.49.51,2.27.15.69.3,1.42.48,2.2.17.78.38,1.54.62,2.27l4.4,17.01h11.22l4.02-13.11c-.42-1.77-.64-3.64-.64-5.58,0-3.02.52-5.86,1.54-8.45h0Z"></path><path d="M335.04,68.35v-3.89c-.44-.19-1.22-.29-2.35-.29-2.3,0-4.25.51-5.86,1.54s-3.08,2.66-4.4,4.91h-.22v-5.86h-11.44v6.89c.69,1.1,1.28,2.26,1.77,3.51,1.02,2.59,1.54,5.43,1.54,8.45s-.52,5.86-1.54,8.45c-.49,1.24-1.08,2.41-1.77,3.51v6.74h11.95v-16.86c0-4.11,1.09-7.05,3.26-8.83,1.35-1.1,2.98-1.76,4.9-1.97.78-1.88,1.78-3.55,2.96-4.98.38-.45.77-.88,1.19-1.29v-.03Z"></path><path d="M335.04,70.19c-.07.08-.15.17-.22.25-.99,1.19-1.83,2.56-2.52,4.09h.02"></path><path d="M332.32,74.54h-.02c-.12.26-.23.52-.34.79-.1.26-.2.52-.3.78-.07.2-.15.4-.21.61-.81,2.44-1.21,5.13-1.21,8.06,0,3.13.4,5.93,1.21,8.39.81,2.47,1.94,4.56,3.41,6.27s3.2,3.02,5.2,3.92,4.2,1.36,6.6,1.36,4.68-.55,6.56-1.65,3.38-2.63,4.51-4.58h.15v6.51h11.44v-59.78c-6.6,0-11.95,5.35-11.95,11.95v13.1h-.22c-1.12-1.56-2.49-2.85-4.11-3.85-1.61-1-3.74-1.5-6.38-1.5-2.44,0-4.67.49-6.67,1.47-1.24.61-2.37,1.36-3.4,2.25-.27.23-.52.48-.78.73-.27.27-.52.55-.78.84M355.56,92.33c-1.39,1.96-3.34,2.93-5.83,2.93-2.35,0-4.17-.95-5.46-2.86-1.3-1.91-1.94-4.5-1.94-7.77s.66-5.75,1.98-7.73,3.18-2.97,5.57-2.97c1.32,0,2.46.27,3.41.81s1.76,1.28,2.42,2.24c.66.95,1.15,2.1,1.47,3.45.32,1.34.48,2.8.48,4.36,0,3.08-.7,5.6-2.09,7.55h-.01Z"></path><path d="M71.5,18.81c-31.54,0-57.04,25.62-57.04,57.11s25.5,57.21,57.04,57.21c20.44,0,38.38-7.48,48.4-23.78V42.61c-10.02-16.25-27.95-23.81-48.4-23.81h0ZM45.53,95.89c-9.25,0-16.87-7.44-16.87-16.91s7.61-16.91,16.87-16.91,16.87,7.59,16.87,16.91-7.41,16.91-16.87,16.91Z"></path><path d="M163.61,64.81l-13.78-.05-11.19,12.64.06-16.76c.03-7.51-4.67-14.23-11.74-16.77l-.25,59.33h11.82l.06-12.46,3.6-3.8,9.11,15.39h12.6l-13.55-23.5,13.24-14.03h.02Z"></path><path d="M190.74,68.34c-1.61-1.47-3.48-2.61-5.61-3.45-2.13-.83-4.53-1.25-7.22-1.25-2.88,0-5.5.5-7.84,1.5-2.35,1-4.37,2.4-6.08,4.18s-3.03,3.89-3.96,6.3c-.93,2.42-1.39,5.02-1.39,7.81s.46,5.47,1.39,7.92c.93,2.44,2.25,4.56,3.96,6.34,1.71,1.78,3.81,3.18,6.3,4.18s5.28,1.5,8.36,1.5c2.39,0,4.56-.29,6.49-.88,1.93-.59,3.68-1.44,5.24-2.57,1.66-1.12,3.03-2.46,4.11-4,1.07-1.54,1.81-3.16,2.2-4.88h-11.66c-.54,1.17-1.32,2.09-2.35,2.75s-2.32.99-3.89.99c-2.49,0-4.42-.73-5.79-2.2-1.37-1.47-2.25-3.47-2.64-6.01h26.98c.05-3.81-.48-7.29-1.58-10.45-1.1-3.15-2.77-5.75-5.02-7.81v.03ZM170.43,79.49c.39-2.25,1.2-4.03,2.42-5.35s2.98-1.98,5.28-1.98c1.95,0,3.57.66,4.84,1.98,1.27,1.32,2.03,3.1,2.27,5.35h-14.81Z"></path><path d="M312.53,83.59c0-2.83-.48-5.46-1.43-7.88-.1-.26-.21-.52-.33-.78-.24-.54-.5-1.06-.78-1.56-.24-.44-.5-.87-.78-1.28-.64-.96-1.35-1.86-2.15-2.69-1.74-1.78-3.84-3.18-6.3-4.18-2.47-1-5.22-1.5-8.25-1.5h-.08c-3.03,0-5.78.5-8.25,1.5s-4.57,2.4-6.3,4.18c-.8.83-1.52,1.72-2.15,2.69-.27.41-.53.84-.78,1.28-.28.5-.54,1.02-.78,1.56-.11.26-.22.51-.33.78-.95,2.42-1.43,5.05-1.43,7.88,0,2.39.34,4.62,1.02,6.71,0,.02.02.05.02.07.12.37.25.73.39,1.09.1.26.21.52.33.78h0c.09.2.18.39.27.58.04.08.08.17.12.25.08.16.17.32.25.48.04.08.08.16.12.24.01.02.03.04.04.07.21.37.42.73.65,1.08.03.04.05.09.08.14.64.96,1.35,1.86,2.15,2.68,1.74,1.78,3.84,3.18,6.3,4.18,2.47,1,5.22,1.5,8.25,1.5h.08c3.03,0,5.78-.5,8.25-1.5s4.57-2.39,6.3-4.18c.8-.83,1.52-1.72,2.15-2.68.03-.04.05-.09.08-.14.23-.35.45-.71.65-1.08.01-.02.03-.04.04-.07.04-.08.08-.16.12-.24.09-.16.17-.32.25-.48.04-.08.08-.17.12-.25.09-.19.18-.38.27-.57h0c.11-.27.22-.52.33-.79.14-.36.27-.73.39-1.09,0-.02.02-.05.02-.07.11-.34.21-.68.3-1.02,0-.02.01-.05.02-.07h0c.46-1.78.7-3.65.7-5.62h.06ZM297.8,91.42c-1.18,1.85-2.91,2.76-5.28,2.76h-.04c-2.36,0-4.09-.91-5.29-2.76-1.26-1.94-1.89-4.57-1.89-7.83s.64-5.9,1.89-7.87c1.2-1.87,2.93-2.78,5.28-2.79h.04c2.37,0,4.1.91,5.28,2.79,1.23,1.97,1.86,4.61,1.86,7.87s-.63,5.89-1.86,7.83h.01Z"></path><path d="M232.15,64.75c-7.05,0-13.29,4.57-15.42,11.29l-1.48,4.69c-.29.93-.57,1.91-.84,2.93-.27,1.03-.52,1.96-.77,2.79-.19.76-.38,1.52-.57,2.29-.19-.76-.38-1.52-.57-2.29-.25-.83-.5-1.76-.77-2.79s-.55-2-.84-2.93l-1.48-4.69c-2.13-6.72-8.37-11.29-15.42-11.29h-.76l11.07,28.88c.78,2,1.36,3.59,1.72,4.76.37,1.17.55,2.18.55,3.01,0,1.27-.38,2.25-1.14,2.93s-2.02,1.03-3.78,1.03h-4.11v9.31h7.77c1.91,0,3.57-.21,4.99-.62,1.42-.42,2.68-1.09,3.78-2.02s2.09-2.15,2.97-3.67,1.69-3.37,2.42-5.57l3.52-10.32,9.94-27.73h-.78Z"></path></svg></div>
-    <div class="lz login-hero">
-      <h2>Hola,<br>¡Bienvenido!</h2>
-      <p>Inteligencia financiera para decisiones estratégicas. Flujo de caja, cartera y resultados, en un solo lugar.</p>
-    </div>
-    <div class="login-dots"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-  </div>
-  <div class="login-right">
-    <div class="login-box">
-      <div class="login-field">
-        <label>Usuario</label>
-        <input type="text" id="loginUser" placeholder="Ingrese su usuario o correo electrónico" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
-      </div>
-      <div class="login-field">
-        <label>Contraseña</label>
-        <div class="login-pass-wrap">
-          <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-          <button type="button" class="eye" aria-label="Mostrar contraseña" onclick="var i=document.getElementById('loginPass');i.type=i.type==='password'?'text':'password';"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
-        </div>
-      </div>
-      <label class="login-remember"><input type="checkbox" id="loginRemember"> Recuérdame</label>
-      <div class="login-error" id="loginError"></div>
-      <button class="login-btn" onclick="doLogin()">Iniciar Sesión</button>
-    </div>
-  </div>
-</div>
 
 <!-- ── SIDEBAR ── -->
 <aside class="sidebar">
@@ -2101,47 +2038,16 @@ function FAC_init(){
 
 <script>
 // ── AUTH ──
-const USERS = {
-  'keyword_connect': 'KwC!774xZa',
-  'keyword_portal':  'Kwp#903!Mn'
-};
-const SESSION_KEY = 'kw_dash_auth';
-
-function checkSession() {
-  try {
-    const s = sessionStorage.getItem(SESSION_KEY);
-    if (s && USERS[s] !== undefined) {
-      document.getElementById('loginOverlay').classList.add('hidden');
-    }
-  } catch(e) {}
-}
-
-function doLogin() {
-  const u = document.getElementById('loginUser').value.trim();
-  const p = document.getElementById('loginPass').value;
-  const err = document.getElementById('loginError');
-  if (USERS[u] && USERS[u] === p) {
-    try { sessionStorage.setItem(SESSION_KEY, u); } catch(e) {}
-    document.getElementById('loginOverlay').classList.add('hidden');
-    err.textContent = '';
-  } else {
-    err.textContent = 'Usuario o contraseña incorrectos.';
-    document.getElementById('loginPass').value = '';
-    document.getElementById('loginPass').focus();
-  }
-}
-
+// El acceso real ya se verifica del lado del servidor (middleware.js +
+// api/login.py) antes de que este archivo llegue al navegador. Esto solo
+// cierra la sesión real (borra la cookie firmada) cuando el usuario hace
+// clic en "Cerrar Sesión".
 function doLogout() {
-  try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
-  document.getElementById('loginUser').value = '';
-  document.getElementById('loginPass').value = '';
-  document.getElementById('loginError').textContent = '';
-  document.getElementById('loginOverlay').classList.remove('hidden');
-  document.getElementById('loginUser').focus();
+  fetch('/api/logout', { method: 'POST' }).finally(function () {
+    location.href = '/login.html';
+  });
 }
 
-// Check on load
-checkSession();
 if(!window._pygInited){setTimeout(function(){PYG_initCharts();PYG_render();window._pygInited=true;},100);}
 // Pre-init PyG since it's the first tab
 setTimeout(function(){
