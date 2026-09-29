@@ -1002,7 +1002,12 @@ def procesar_bancos(contenidos):
         print("  Leyendo BANCOS.xls ...")
         import xlrd
         wb_xls = abrir_xlrd(contenidos, 'BANCOS.xls')
-        ws_xls = wb_xls.sheet_by_index(0)
+        # Leer 'Sheet1' por nombre: contabilidad a veces deja hojas extra
+        # (tablas dinámicas) delante de la hoja de datos.
+        if 'Sheet1' in wb_xls.sheet_names():
+            ws_xls = wb_xls.sheet_by_name('Sheet1')
+        else:
+            ws_xls = wb_xls.sheet_by_index(0)
         all_rows = []
         for i in range(ws_xls.nrows):
             row = []
